@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Copy, Sparkles, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 // Mock data interfaces (will be replaced by actual LLM output)
 interface Suggestion {
@@ -45,49 +46,46 @@ const UserStoryQualityAnalyzer: React.FC = () => {
     toast.success("User story copied to clipboard!");
   };
 
-  const handleAnalyzeStory = () => {
+  const invokeEdgeFunction = async (mode: string, story: string, suggestions?: Suggestion[]) => {
     setIsLoading(true);
-    // Simulate API call to LLM
-    setTimeout(() => {
-      const mockResult: AnalysisResult = {
-        qualityScore: 75,
-        qualityLevel: "Needs Improvements",
-        recommendedStoryPoints: 8,
-        improvementSuggestions: [
-          {
-            id: "1",
-            text: "Clearly define the 'Who' (user role) for the story.",
-            example: "As a registered user, I want to...",
-            ticked: true,
-          },
-          {
-            id: "2",
-            text: "Specify measurable criteria for 'Done'.",
-            example: "So that I can achieve X (e.g., 'complete my purchase').",
-            ticked: true,
-          },
-          {
-            id: "3",
-            text: "Break down complex functionality into smaller stories.",
-            example: "Instead of 'manage all settings', consider 'manage profile settings' and 'manage notification settings'.",
-            ticked: false,
-          },
-        ],
-        suggestedAcceptanceCriteria: [
-          { id: "ac1", text: "Given I am a user, when I visit the homepage, then I see a login button.", example: "", ticked: true },
-          { id: "ac2", text: "Given I am logged in, when I click 'My Profile', then I see my username and email.", example: "", ticked: true },
-          { id: "ac3", text: "Given I am an admin, when I access the user management page, then I can view all registered users.", example: "", ticked: false },
-        ],
-        similarHistoricalStories: [
-          { id: "US-001", title: "As a user, I want to log in to my account", status: "Done", featureId: "F-001", featureName: "Authentication", matchingPercentage: 92 },
-          { id: "US-005", title: "As a user, I want to reset my password", status: "In Progress", featureId: "F-001", featureName: "Authentication", matchingPercentage: 85 },
-          { id: "US-010", title: "As an admin, I want to manage user roles", status: "Blocked", featureId: "F-002", featureName: "User Management", matchingPercentage: 78 },
-        ],
+    try {
+      const payload: { userStory: string; llmModel: string; operationMode: string; suggestions?: Suggestion[] } = {
+        userStory: story,
+        llmModel,
+        operationMode: mode,
       };
-      setAnalysisResult(mockResult);
+      if (suggestions) {
+        payload.suggestions = suggestions;
+      }
+
+      const { data, error } = await supabase.functions.invoke('analyze-story', {
+        body: payload,
+      });
+
+      if (error) {
+        console.error("Error invoking Edge Function:", error);
+        toast.error(`Analysis failed: ${error.message}`);
+        setAnalysisResult(null);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Unexpected error during Edge Function invocation:", err);
+      toast.error("An unexpected error occurred during analysis.");
+      setAnalysisResult(null);
+      return null;
+    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAnalyzeStory = async () => {
+    const data = await invokeEdgeFunction("analyze", userStory);
+    if (data) {
+      setAnalysisResult(data as AnalysisResult);
       toast.success("User story analysis complete!");
-    }, 2000);
+    }
   };
 
   const handleReset = () => {
@@ -97,16 +95,19 @@ const UserStoryQualityAnalyzer: React.FC = () => {
     toast.info("Analyzer reset to initial state.");
   };
 
-  const handleApplySuggestions = () => {
-    setIsLoading(true);
-    // Simulate LLM applying suggestions
-    setTimeout(() => {
-      const newStory = "As a registered user, I want to log in securely, so that I can access my personalized dashboard and manage my account details.";
-      setUserStory(newStory);
+  const handleApplySuggestions = async () => {
+    if (!analysisResult) return;
+
+    const tickedSuggestions = analysisResult.improvementSuggestions.filter(s => s.ticked);
+    const data = await invokeEdgeFunction("apply_suggestions", userStory, tickedSuggestions);
+    
+    if (data && data.newStory) {
+      setUserStory(data.newStory);
       setAnalysisResult(null); // Reset analysis to allow re-analysis of the new story
-      setIsLoading(false);
       toast.success("Suggestions applied and new story generated!");
-    }, 2000);
+    } else {
+        toast.error("Failed to apply suggestions.");
+    }
   };
 
   const handleSuggestionToggle = (type: "improvement" | "acceptance", id: string) => {
