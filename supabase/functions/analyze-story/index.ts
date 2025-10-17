@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userStory, llmModel, operationMode } = await req.json();
+    const { userStory, llmModel, operationMode, suggestions } = await req.json();
 
     if (!userStory) {
       return new Response(JSON.stringify({ error: 'User story is required.' }), {
@@ -21,7 +21,7 @@ serve(async (req) => {
       });
     }
 
-    // Initialize Supabase client for potential future database interactions within the function
+    // Initialize Supabase client (if needed for database interactions within the function)
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -32,20 +32,15 @@ serve(async (req) => {
       }
     );
 
-    // Get OpenAI API key from environment variables (Supabase secrets)
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      return new Response(JSON.stringify({ error: 'OPENAI_API_KEY not set in Supabase secrets.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
-    }
-
-    let prompt = "";
+    let apiUrl = "";
+    let headers: Record<string, string> = {};
+    let requestBody: any = {};
     let modelToUse = llmModel || "gpt-4o"; // Default to gpt-4o if not specified
 
+    let promptContent = "";
+
     if (operationMode === "analyze") {
-      prompt = `Analyze the following user story for quality, provide improvement suggestions, suggest acceptance criteria, and find similar historical stories. Return the output as a JSON object with the following structure:
+      promptContent = `Analyze the following user story for quality, provide improvement suggestions, suggest acceptance criteria, and find similar historical stories. Return the output as a JSON object with the following structure:
       {
         "qualityScore": number (0-100),
         "qualityLevel": string (e.g., "Excellent", "Good", "Needs Improvements", "Poor"),
@@ -59,10 +54,9 @@ serve(async (req) => {
       
       Ensure all 'id' fields are unique strings. For 'ticked', default to true for suggestions/criteria that are generally good practices or directly applicable, and false for more advanced or optional ones. For 'similarHistoricalStories', generate 3 plausible mock stories with varying matching percentages.`;
     } else if (operationMode === "apply_suggestions") {
-        prompt = `Given the original user story and a list of suggestions, rewrite the user story to incorporate the suggestions. Return only the new user story text as a string.
+        promptContent = `Given the original user story and a list of suggestions, rewrite the user story to incorporate the suggestions. Return only the new user story text as a string.
         Original User Story: "${userStory}"
-        Suggestions: ${JSON.stringify(req.json().suggestions || [])}`; // Assuming suggestions are passed for this mode
-        modelToUse = llmModel || "gpt-4o";
+        Suggestions: ${JSON.stringify(suggestions || [])}`;
     } else {
         return new Response(JSON.stringify({ error: 'Invalid operation mode.' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -70,24 +64,65 @@ serve(async (req) => {
         });
     }
 
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
+    if (modelToUse.startsWith("gpt")) {
+      const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+      if (!openaiApiKey) {
+        return new Response(JSON.stringify({ error: 'OPENAI_API_KEY not set in Supabase secrets.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        });
+      }
+      apiUrl = 'https://api.openai.com/v1/chat/completions';
+      headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify({
+      };
+      requestBody = {
         model: modelToUse,
-        messages: [{ role: 'user', content: prompt }],
-        response_format: { type: "json_object" }, // Request JSON output
+        messages: [{ role: 'user', content: promptContent }],
+        response_format: { type: "json_object" },
         temperature: 0.7,
-      }),
+      };
+      if (operationMode === "apply_suggestions") {
+        requestBody.response_format = undefined; // For apply_suggestions, we expect a plain string
+      }
+    } else if (modelToUse.startsWith("gemini")) {
+      const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+      if (!geminiApiKey) {
+        return new Response(JSON.stringify({ error: 'GEMINI_API_KEY not set in Supabase secrets.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        });
+      }
+      apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${geminiApiKey}`;
+      headers = {
+        'Content-Type': 'application/json',
+      };
+      requestBody = {
+        contents: [{
+          parts: [{ text: promptContent }]
+        }],
+        generationConfig: {
+          responseMimeType: operationMode === "analyze" ? "application/json" : "text/plain",
+          temperature: 0.7,
+        },
+      };
+    } else {
+      return new Response(JSON.stringify({ error: 'Unsupported LLM model.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("OpenAI API error:", errorData);
+      console.error("LLM API error:", errorData);
       return new Response(JSON.stringify({ error: `LLM API error: ${errorData.error?.message || response.statusText}` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: response.status,
@@ -95,9 +130,14 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const llmOutput = data.choices[0].message.content;
+    let llmOutput;
 
-    // For apply_suggestions mode, the LLM output is just the new story string
+    if (modelToUse.startsWith("gpt")) {
+      llmOutput = data.choices[0].message.content;
+    } else if (modelToUse.startsWith("gemini")) {
+      llmOutput = data.candidates[0].content.parts[0].text;
+    }
+
     if (operationMode === "apply_suggestions") {
         return new Response(JSON.stringify({ newStory: llmOutput }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -105,7 +145,6 @@ serve(async (req) => {
         });
     }
 
-    // For analyze mode, parse the JSON output
     const analysisResult = JSON.parse(llmOutput);
 
     return new Response(JSON.stringify(analysisResult), {
