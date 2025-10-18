@@ -65,18 +65,17 @@ serve(async (req) => {
         User Story: "${userStory}"`;
         responseFormat = "text/plain";
     } else if (operationMode === "create_story_from_scratch") {
-        promptContent = `Generate a user story based on the following main ideas. The output should be a JSON object with a 'title', a 'description' (which should combine the user story, a 'Details' section for context, and a 'Scope' section for actionable items), and 'acceptanceCriteria'.
+        promptContent = `Generate a user story based on the following main ideas. The output should be a JSON object with a 'title' and a 'description'. The 'description' should be comprehensive, including the user story itself, a 'Details:' section for context, a 'Scope:' section for actionable items, and an 'Acceptance Criteria:' section with bullet points for what will be checked to accept the story when completed.
         
         Main Ideas: "${userStory}"
         
         Return the output as a JSON object with the following structure:
         {
           "title": "string",
-          "description": "string", // This string should include the user story, a 'Details:' section, and a 'Scope:' section.
-          "acceptanceCriteria": [{ "id": string, "text": string, "ticked": boolean }]
+          "description": "string" // This string should include the user story, 'Details:', 'Scope:', and 'Acceptance Criteria:' sections.
         }
         
-        Ensure all 'id' fields for acceptance criteria are unique strings and 'ticked' defaults to true.`;
+        Ensure the acceptance criteria are formatted as bullet points within the 'Acceptance Criteria:' section of the description.`;
         responseFormat = "application/json";
     } else {
         return new Response(JSON.stringify({ error: 'Invalid operation mode.' }), {

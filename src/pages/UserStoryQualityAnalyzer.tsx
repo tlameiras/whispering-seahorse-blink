@@ -36,8 +36,7 @@ interface AnalysisResult {
 
 interface GeneratedStoryOutput {
   title: string;
-  description: string;
-  acceptanceCriteria: Suggestion[];
+  description: string; // Now includes Acceptance Criteria
 }
 
 const UserStoryQualityAnalyzer: React.FC = () => {
@@ -49,11 +48,17 @@ const UserStoryQualityAnalyzer: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [originalStoryForComparison, setOriginalStoryForComparison] = useState<string | null>(null);
   const [improvedStory, setImprovedStory] = useState<string | null>(null);
-  const [generatedStoryOutput, setGeneratedStoryOutput] = useState<GeneratedStoryOutput | null>(null);
+  const [generatedStoryOutput, setGeneratedStoryOutput] = useState<GeneratedStoryOutput | null>(null); // Keep for internal data structure
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(userStory);
-    toast.success("User story copied to clipboard!");
+    // Copy either the current userStory or the improvedStory if it's being reviewed
+    const textToCopy = improvedStory || userStory;
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy);
+      toast.success("Content copied to clipboard!");
+    } else {
+      toast.info("Nothing to copy.");
+    }
   };
 
   const invokeEdgeFunction = async (mode: string, storyInput: string, suggestions?: Suggestion[]) => {
@@ -136,7 +141,11 @@ const UserStoryQualityAnalyzer: React.FC = () => {
     } else if (operationMode === "create_story_from_scratch") {
       const data = await invokeEdgeFunction("create_story_from_scratch", storyInput);
       if (data) {
-        setGeneratedStoryOutput(data as GeneratedStoryOutput);
+        const generated = data as GeneratedStoryOutput;
+        setGeneratedStoryOutput(generated); // Store the structured output
+        setOriginalStoryForComparison(mainIdeas); // Original input for comparison
+        // Format the generated story for side-by-side display
+        setImprovedStory(`## ${generated.title}\n\n${generated.description}`);
         toast.success("User story generated from ideas!");
       } else {
         toast.error("Failed to generate story from ideas.");
@@ -170,36 +179,17 @@ const UserStoryQualityAnalyzer: React.FC = () => {
     }
   };
 
-  const handleAcceptImprovedStory = () => {
-    if (improvedStory) {
+  const handleAcceptChanges = () => {
+    if (operationMode === "review_and_improve" && improvedStory) {
       setUserStory(improvedStory);
       setImprovedStory(null);
       setOriginalStoryForComparison(null);
       toast.success("Improved story accepted!");
-    }
-  };
-
-  const handleDeclineImprovedStory = () => {
-    setImprovedStory(null);
-    setOriginalStoryForComparison(null);
-    toast.info("Improved story declined.");
-  };
-
-  const handleAcceptGeneratedStory = () => {
-    if (generatedStoryOutput) {
-      setUserStory(generatedStoryOutput.description);
-      // To display acceptance criteria from generated story in the analysis section,
-      // we need to set it to analysisResult.suggestedAcceptanceCriteria.
-      // If analysisResult is null, create a minimal one.
-      setAnalysisResult(prev => ({
-        ...prev,
-        qualityScore: 0, // Default or placeholder
-        qualityLevel: "Draft", // Default or placeholder
-        recommendedStoryPoints: 0, // Default or placeholder
-        improvementSuggestions: [],
-        similarHistoricalStories: [],
-        suggestedAcceptanceCriteria: generatedStoryOutput.acceptanceCriteria,
-      }));
+    } else if (operationMode === "create_story_from_scratch" && generatedStoryOutput) {
+      setUserStory(generatedStoryOutput.description); // Set the description as the main story
+      // Optionally, you could also set the title if you had a separate title field for userStory
+      setImprovedStory(null);
+      setOriginalStoryForComparison(null);
       setGeneratedStoryOutput(null);
       setMainIdeas(""); // Clear main ideas after accepting
       setOperationMode("analyze"); // Switch to analyze mode after accepting
@@ -207,10 +197,14 @@ const UserStoryQualityAnalyzer: React.FC = () => {
     }
   };
 
-  const handleDeclineGeneratedStory = () => {
-    setGeneratedStoryOutput(null);
-    setMainIdeas(""); // Clear main ideas after declining
-    toast.info("Generated story declined.");
+  const handleDeclineChanges = () => {
+    setImprovedStory(null);
+    setOriginalStoryForComparison(null);
+    setGeneratedStoryOutput(null); // Clear generated output as well
+    if (operationMode === "create_story_from_scratch") {
+      setMainIdeas(""); // Clear main ideas if declined
+    }
+    toast.info("Changes declined.");
   };
 
   const handleSuggestionToggle = (type: "improvement" | "acceptance", id: string) => {
@@ -232,6 +226,9 @@ const UserStoryQualityAnalyzer: React.FC = () => {
       }
     }
   };
+
+  const showComparisonSection = (improvedStory && originalStoryForComparison) && 
+                               (operationMode === "review_and_improve" || operationMode === "create_story_from_scratch");
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
@@ -308,7 +305,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
           className="mb-4 bg-[var(--textarea-bg-intermediate)]"
         />
         <div className="flex justify-between items-center">
-          <Button variant="outline" onClick={handleCopy} disabled={operationMode === "create_story_from_scratch"}>
+          <Button variant="outline" onClick={handleCopy} disabled={isLoading}>
             <Copy className="mr-2 h-4 w-4" /> Copy
           </Button>
           <div className="space-x-2">
@@ -322,66 +319,30 @@ const UserStoryQualityAnalyzer: React.FC = () => {
         </div>
       </div>
 
-      {/* Generated Story Review Section */}
-      {generatedStoryOutput && operationMode === "create_story_from_scratch" && (
+      {/* Comparison Section (for both review_and_improve and create_story_from_scratch) */}
+      {showComparisonSection && (
         <div className="mb-8 p-6 border rounded-lg bg-card shadow-sm">
-          <h2 className="text-2xl font-semibold mb-4">Review Generated Story</h2>
-          <div className="space-y-4 mb-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Title</h3>
-              <p className="text-muted-foreground whitespace-pre-wrap p-3 border rounded-md bg-muted">
-                {generatedStoryOutput.title}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Description (Details & Scope)</h3>
-              <Textarea
-                value={generatedStoryOutput.description}
-                rows={15}
-                readOnly
-                className="bg-muted resize-none"
-              />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Acceptance Criteria</h3>
-              <div className="space-y-2">
-                {generatedStoryOutput.acceptanceCriteria.map((criteria) => (
-                  <div key={criteria.id} className="p-3 border rounded-md bg-secondary">
-                    <p className="font-medium">{criteria.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={handleDeclineGeneratedStory} disabled={isLoading}>
-              <X className="mr-2 h-4 w-4" /> Decline Story
-            </Button>
-            <Button onClick={handleAcceptGeneratedStory} disabled={isLoading}>
-              <Check className="mr-2 h-4 w-4" /> Accept Story
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Improved Story Comparison Section */}
-      {improvedStory && originalStoryForComparison && operationMode === "review_and_improve" && (
-        <div className="mb-8 p-6 border rounded-lg bg-card shadow-sm">
-          <h2 className="text-2xl font-semibold mb-4">Review Improvements</h2>
+          <h2 className="text-2xl font-semibold mb-4">
+            {operationMode === "create_story_from_scratch" ? "Review Generated Story" : "Review Improvements"}
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Original Story</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {operationMode === "create_story_from_scratch" ? "Main Ideas" : "Original Story"}
+              </h3>
               <Textarea
-                value={originalStoryForComparison}
+                value={originalStoryForComparison || ""}
                 rows={10}
                 readOnly
                 className="bg-muted resize-none"
               />
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2">Improved Story</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {operationMode === "create_story_from_scratch" ? "Generated Story" : "Improved Story"}
+              </h3>
               <Textarea
-                value={improvedStory}
+                value={improvedStory || ""}
                 rows={10}
                 readOnly
                 className="bg-muted resize-none"
@@ -389,10 +350,10 @@ const UserStoryQualityAnalyzer: React.FC = () => {
             </div>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={handleDeclineImprovedStory} disabled={isLoading}>
+            <Button variant="outline" onClick={handleDeclineChanges} disabled={isLoading}>
               <X className="mr-2 h-4 w-4" /> Decline Changes
             </Button>
-            <Button onClick={handleAcceptImprovedStory} disabled={isLoading}>
+            <Button onClick={handleAcceptChanges} disabled={isLoading}>
               <Check className="mr-2 h-4 w-4" /> Accept Changes
             </Button>
           </div>
