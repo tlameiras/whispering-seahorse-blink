@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client"; // Import Supabase cl
 interface Suggestion {
   id: string;
   text: string;
-  example: string;
+  example?: string; // example is optional
   ticked: boolean;
 }
 
@@ -34,25 +34,33 @@ interface AnalysisResult {
   similarHistoricalStories: SimilarStory[];
 }
 
+interface GeneratedStoryOutput {
+  title: string;
+  description: string;
+  acceptanceCriteria: Suggestion[];
+}
+
 const UserStoryQualityAnalyzer: React.FC = () => {
-  const [userStory, setUserStory] = useState<string>("");
+  const [userStory, setUserStory] = useState<string>(""); // For existing story analysis/improvement
+  const [mainIdeas, setMainIdeas] = useState<string>(""); // For creating story from scratch
   const [operationMode, setOperationMode] = useState<string>("analyze");
   const [llmModel, setLlmModel] = useState<string>("gemini-2.5-flash");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [originalStoryForComparison, setOriginalStoryForComparison] = useState<string | null>(null);
   const [improvedStory, setImprovedStory] = useState<string | null>(null);
+  const [generatedStoryOutput, setGeneratedStoryOutput] = useState<GeneratedStoryOutput | null>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(userStory);
     toast.success("User story copied to clipboard!");
   };
 
-  const invokeEdgeFunction = async (mode: string, story: string, suggestions?: Suggestion[]) => {
+  const invokeEdgeFunction = async (mode: string, storyInput: string, suggestions?: Suggestion[]) => {
     setIsLoading(true);
     try {
       const payload: { userStory: string; llmModel: string; operationMode: string; suggestions?: Suggestion[] } = {
-        userStory: story,
+        userStory: storyInput,
         llmModel,
         operationMode: mode,
       };
@@ -70,6 +78,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
         setAnalysisResult(null);
         setImprovedStory(null);
         setOriginalStoryForComparison(null);
+        setGeneratedStoryOutput(null);
         return null;
       }
 
@@ -80,6 +89,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
       setAnalysisResult(null);
       setImprovedStory(null);
       setOriginalStoryForComparison(null);
+      setGeneratedStoryOutput(null);
       return null;
     } finally {
       setIsLoading(false);
@@ -87,39 +97,61 @@ const UserStoryQualityAnalyzer: React.FC = () => {
   };
 
   const handleExecuteOperation = async () => {
-    if (!userStory.trim()) {
-      toast.error("Please enter a user story to proceed.");
-      return;
+    // Clear all previous results before new operation
+    setAnalysisResult(null);
+    setImprovedStory(null);
+    setOriginalStoryForComparison(null);
+    setGeneratedStoryOutput(null);
+
+    let storyInput = "";
+    if (operationMode === "create_story_from_scratch") {
+      storyInput = mainIdeas.trim();
+      if (!storyInput) {
+        toast.error("Please enter your main ideas to create a story.");
+        return;
+      }
+    } else {
+      storyInput = userStory.trim();
+      if (!storyInput) {
+        toast.error("Please enter a user story to proceed.");
+        return;
+      }
     }
 
-    setAnalysisResult(null); // Clear previous analysis results
-    setImprovedStory(null); // Clear previous improved story
-    setOriginalStoryForComparison(null); // Clear previous original story for comparison
-
     if (operationMode === "analyze") {
-      const data = await invokeEdgeFunction("analyze", userStory);
+      const data = await invokeEdgeFunction("analyze", storyInput);
       if (data) {
         setAnalysisResult(data as AnalysisResult);
         toast.success("User story analysis complete!");
       }
     } else if (operationMode === "review_and_improve") {
-      setOriginalStoryForComparison(userStory); // Store original for comparison
-      const data = await invokeEdgeFunction("review_and_improve", userStory);
+      setOriginalStoryForComparison(storyInput); // Store original for comparison
+      const data = await invokeEdgeFunction("review_and_improve", storyInput);
       if (data && data.newStory) {
         setImprovedStory(data.newStory);
         toast.success("User story reviewed and improved!");
       } else {
         toast.error("Failed to review and improve story.");
       }
+    } else if (operationMode === "create_story_from_scratch") {
+      const data = await invokeEdgeFunction("create_story_from_scratch", storyInput);
+      if (data) {
+        setGeneratedStoryOutput(data as GeneratedStoryOutput);
+        toast.success("User story generated from ideas!");
+      } else {
+        toast.error("Failed to generate story from ideas.");
+      }
     }
   };
 
   const handleReset = () => {
     setUserStory("");
+    setMainIdeas("");
     setAnalysisResult(null);
     setIsLoading(false);
     setOriginalStoryForComparison(null);
     setImprovedStory(null);
+    setGeneratedStoryOutput(null);
     toast.info("Analyzer reset to initial state.");
   };
 
@@ -153,6 +185,34 @@ const UserStoryQualityAnalyzer: React.FC = () => {
     toast.info("Improved story declined.");
   };
 
+  const handleAcceptGeneratedStory = () => {
+    if (generatedStoryOutput) {
+      setUserStory(generatedStoryOutput.description);
+      // To display acceptance criteria from generated story in the analysis section,
+      // we need to set it to analysisResult.suggestedAcceptanceCriteria.
+      // If analysisResult is null, create a minimal one.
+      setAnalysisResult(prev => ({
+        ...prev,
+        qualityScore: 0, // Default or placeholder
+        qualityLevel: "Draft", // Default or placeholder
+        recommendedStoryPoints: 0, // Default or placeholder
+        improvementSuggestions: [],
+        similarHistoricalStories: [],
+        suggestedAcceptanceCriteria: generatedStoryOutput.acceptanceCriteria,
+      }));
+      setGeneratedStoryOutput(null);
+      setMainIdeas(""); // Clear main ideas after accepting
+      setOperationMode("analyze"); // Switch to analyze mode after accepting
+      toast.success("Generated story accepted and loaded!");
+    }
+  };
+
+  const handleDeclineGeneratedStory = () => {
+    setGeneratedStoryOutput(null);
+    setMainIdeas(""); // Clear main ideas after declining
+    toast.info("Generated story declined.");
+  };
+
   const handleSuggestionToggle = (type: "improvement" | "acceptance", id: string) => {
     if (analysisResult) {
       if (type === "improvement") {
@@ -181,7 +241,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
       </p>
 
       {/* Dynamic Header Section */}
-      {analysisResult && (
+      {analysisResult && operationMode === "analyze" && (
         <div className="mb-8 p-4 border rounded-lg bg-card shadow-sm flex items-center justify-between">
           {analysisResult.qualityLevel === "Excellent" ? (
             <span className="text-lg font-semibold text-green-600 dark:text-green-400">Story ready to go! 🎉</span>
@@ -206,6 +266,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
             <SelectContent>
               <SelectItem value="analyze">Analyze the quality of the story</SelectItem>
               <SelectItem value="review_and_improve">Review and improve the story</SelectItem>
+              <SelectItem value="create_story_from_scratch">Create story from scratch</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -228,20 +289,30 @@ const UserStoryQualityAnalyzer: React.FC = () => {
 
       {/* User Story Input Section */}
       <div className="mb-8 p-6 border rounded-lg bg-card shadow-sm">
-        <h2 className="text-2xl font-semibold mb-4">Enter Your User Story</h2>
+        <h2 className="text-2xl font-semibold mb-4">
+          {operationMode === "create_story_from_scratch" ? "Enter Main Ideas" : "Enter Your User Story"}
+        </h2>
         <Textarea
-          placeholder="Paste or type your user story here..."
-          value={userStory}
-          onChange={(e) => setUserStory(e.target.value)}
+          placeholder={
+            operationMode === "create_story_from_scratch"
+              ? "Describe your main ideas for the user story here (e.g., 'As a user, I want to log in using my email and password. I need to be able to reset my password if I forget it.')."
+              : "Paste or type your user story here..."
+          }
+          value={operationMode === "create_story_from_scratch" ? mainIdeas : userStory}
+          onChange={(e) =>
+            operationMode === "create_story_from_scratch"
+              ? setMainIdeas(e.target.value)
+              : setUserStory(e.target.value)
+          }
           rows={8}
           className="mb-4 bg-[var(--textarea-bg-intermediate)]"
         />
         <div className="flex justify-between items-center">
-          <Button variant="outline" onClick={handleCopy}>
+          <Button variant="outline" onClick={handleCopy} disabled={operationMode === "create_story_from_scratch"}>
             <Copy className="mr-2 h-4 w-4" /> Copy
           </Button>
           <div className="space-x-2">
-            <Button onClick={handleExecuteOperation} disabled={isLoading || !userStory}>
+            <Button onClick={handleExecuteOperation} disabled={isLoading || (operationMode === "create_story_from_scratch" ? !mainIdeas.trim() : !userStory.trim())}>
               {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
             </Button>
             <Button variant="secondary" onClick={handleReset} disabled={isLoading}>
@@ -251,8 +322,50 @@ const UserStoryQualityAnalyzer: React.FC = () => {
         </div>
       </div>
 
+      {/* Generated Story Review Section */}
+      {generatedStoryOutput && operationMode === "create_story_from_scratch" && (
+        <div className="mb-8 p-6 border rounded-lg bg-card shadow-sm">
+          <h2 className="text-2xl font-semibold mb-4">Review Generated Story</h2>
+          <div className="space-y-4 mb-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Title</h3>
+              <p className="text-muted-foreground whitespace-pre-wrap p-3 border rounded-md bg-muted">
+                {generatedStoryOutput.title}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Description (Details & Scope)</h3>
+              <Textarea
+                value={generatedStoryOutput.description}
+                rows={15}
+                readOnly
+                className="bg-muted resize-none"
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Acceptance Criteria</h3>
+              <div className="space-y-2">
+                {generatedStoryOutput.acceptanceCriteria.map((criteria) => (
+                  <div key={criteria.id} className="p-3 border rounded-md bg-secondary">
+                    <p className="font-medium">{criteria.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={handleDeclineGeneratedStory} disabled={isLoading}>
+              <X className="mr-2 h-4 w-4" /> Decline Story
+            </Button>
+            <Button onClick={handleAcceptGeneratedStory} disabled={isLoading}>
+              <Check className="mr-2 h-4 w-4" /> Accept Story
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Improved Story Comparison Section */}
-      {improvedStory && originalStoryForComparison && (
+      {improvedStory && originalStoryForComparison && operationMode === "review_and_improve" && (
         <div className="mb-8 p-6 border rounded-lg bg-card shadow-sm">
           <h2 className="text-2xl font-semibold mb-4">Review Improvements</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

@@ -64,6 +64,20 @@ serve(async (req) => {
         promptContent = `Review the following user story for grammatical errors, clarity, and minor wording improvements. Do not make significant changes to the meaning or scope. Return only the improved user story text as a string.
         User Story: "${userStory}"`;
         responseFormat = "text/plain";
+    } else if (operationMode === "create_story_from_scratch") {
+        promptContent = `Generate a user story based on the following main ideas. The output should be a JSON object with a 'title', a 'description' (which should combine the user story, a 'Details' section for context, and a 'Scope' section for actionable items), and 'acceptanceCriteria'.
+        
+        Main Ideas: "${userStory}"
+        
+        Return the output as a JSON object with the following structure:
+        {
+          "title": "string",
+          "description": "string", // This string should include the user story, a 'Details:' section, and a 'Scope:' section.
+          "acceptanceCriteria": [{ "id": string, "text": string, "ticked": boolean }]
+        }
+        
+        Ensure all 'id' fields for acceptance criteria are unique strings and 'ticked' defaults to true.`;
+        responseFormat = "application/json";
     } else {
         return new Response(JSON.stringify({ error: 'Invalid operation mode.' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -151,9 +165,10 @@ serve(async (req) => {
         });
     }
 
-    const analysisResult = JSON.parse(llmOutput);
+    // For 'analyze' and 'create_story_from_scratch', parse JSON
+    const parsedOutput = JSON.parse(llmOutput);
 
-    return new Response(JSON.stringify(analysisResult), {
+    return new Response(JSON.stringify(parsedOutput), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
