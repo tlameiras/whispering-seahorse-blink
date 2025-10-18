@@ -34,6 +34,13 @@ const Navbar: React.FC = () => {
           </NavigationMenuLink>
         </Link>
       </NavigationMenuItem>
+      <NavigationMenuItem>
+        <Link to="/user-story-manager">
+          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+            User Story Manager
+          </NavigationMenuLink>
+        </Link>
+      </NavigationMenuItem>
     </>
   );
 

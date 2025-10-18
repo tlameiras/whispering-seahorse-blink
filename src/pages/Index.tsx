@@ -1,7 +1,7 @@
 "use client";
 
 import ToolCard from "@/components/ToolCard";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ListTodo } from "lucide-react"; // Import ListTodo icon
 
 const Index = () => {
   return (
@@ -27,6 +27,18 @@ const Index = () => {
             "Find similar historical stories",
           ]}
           linkTo="/user-story-analyzer"
+        />
+        <ToolCard
+          icon={<ListTodo className="h-8 w-8 text-purple-600 dark:text-purple-400" />}
+          title="User Story Manager"
+          description="Manage your user stories from creation to completion."
+          bulletPoints={[
+            "List, filter, and sort stories",
+            "Create new stories with AI help",
+            "View and edit story details",
+            "Track status and progress",
+          ]}
+          linkTo="/user-story-manager"
         />
         {/* Future tools can be added here */}
       </div>
