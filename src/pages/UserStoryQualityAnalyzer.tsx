@@ -157,7 +157,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
             Operation Mode
           </label>
           <Select value={operationMode} onValueChange={setOperationMode}>
-            <SelectTrigger id="operation-mode">
+            <SelectTrigger id="operation-mode" className="bg-card">
               <SelectValue placeholder="Select operation mode" />
             </SelectTrigger>
             <SelectContent>
@@ -171,7 +171,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
             LLM Model
           </label>
           <Select value={llmModel} onValueChange={setLlmModel}>
-            <SelectTrigger id="llm-model">
+            <SelectTrigger id="llm-model" className="bg-card">
               <SelectValue placeholder="Select LLM model" />
             </SelectTrigger>
             <SelectContent>
