@@ -38,6 +38,7 @@ serve(async (req) => {
     let modelToUse = llmModel || "gpt-4o"; // Default to gpt-4o if not specified
 
     let promptContent = "";
+    let responseFormat: "application/json" | "text/plain" = "application/json";
 
     if (operationMode === "analyze") {
       promptContent = `Analyze the following user story for quality, provide improvement suggestions, suggest acceptance criteria, and find similar historical stories. Return the output as a JSON object with the following structure:
@@ -53,10 +54,16 @@ serve(async (req) => {
       User Story: "${userStory}"
       
       Ensure all 'id' fields are unique strings. For 'ticked', default to true for suggestions/criteria that are generally good practices or directly applicable, and false for more advanced or optional ones. For 'similarHistoricalStories', generate 3 plausible mock stories with varying matching percentages.`;
+      responseFormat = "application/json";
     } else if (operationMode === "apply_suggestions") {
         promptContent = `Given the original user story and a list of suggestions, rewrite the user story to incorporate the suggestions. Return only the new user story text as a string.
         Original User Story: "${userStory}"
         Suggestions: ${JSON.stringify(suggestions || [])}`;
+        responseFormat = "text/plain";
+    } else if (operationMode === "review_and_improve") {
+        promptContent = `Review the following user story for grammatical errors, clarity, and minor wording improvements. Do not make significant changes to the meaning or scope. Return only the improved user story text as a string.
+        User Story: "${userStory}"`;
+        responseFormat = "text/plain";
     } else {
         return new Response(JSON.stringify({ error: 'Invalid operation mode.' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -80,11 +87,10 @@ serve(async (req) => {
       requestBody = {
         model: modelToUse,
         messages: [{ role: 'user', content: promptContent }],
-        response_format: { type: "json_object" },
         temperature: 0.7,
       };
-      if (operationMode === "apply_suggestions") {
-        requestBody.response_format = undefined; // For apply_suggestions, we expect a plain string
+      if (responseFormat === "application/json") {
+        requestBody.response_format = { type: "json_object" };
       }
     } else if (modelToUse.startsWith("gemini")) {
       const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
@@ -103,7 +109,7 @@ serve(async (req) => {
           parts: [{ text: promptContent }]
         }],
         generationConfig: {
-          responseMimeType: operationMode === "analyze" ? "application/json" : "text/plain",
+          responseMimeType: responseFormat,
           temperature: 0.7,
         },
       };
@@ -138,7 +144,7 @@ serve(async (req) => {
       llmOutput = data.candidates[0].content.parts[0].text;
     }
 
-    if (operationMode === "apply_suggestions") {
+    if (operationMode === "apply_suggestions" || operationMode === "review_and_improve") {
         return new Response(JSON.stringify({ newStory: llmOutput }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Sparkles, RefreshCcw } from "lucide-react";
+import { Copy, Sparkles, RefreshCcw, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
@@ -37,9 +37,11 @@ interface AnalysisResult {
 const UserStoryQualityAnalyzer: React.FC = () => {
   const [userStory, setUserStory] = useState<string>("");
   const [operationMode, setOperationMode] = useState<string>("analyze");
-  const [llmModel, setLlmModel] = useState<string>("gemini-2.5-flash"); // Changed default to "gemini-2.5-flash"
+  const [llmModel, setLlmModel] = useState<string>("gemini-2.5-flash");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [originalStoryForComparison, setOriginalStoryForComparison] = useState<string | null>(null);
+  const [improvedStory, setImprovedStory] = useState<string | null>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(userStory);
@@ -64,27 +66,51 @@ const UserStoryQualityAnalyzer: React.FC = () => {
 
       if (error) {
         console.error("Error invoking Edge Function:", error);
-        toast.error(`Analysis failed: ${error.message}`);
+        toast.error(`Operation failed: ${error.message}`);
         setAnalysisResult(null);
+        setImprovedStory(null);
+        setOriginalStoryForComparison(null);
         return null;
       }
 
       return data;
     } catch (err) {
       console.error("Unexpected error during Edge Function invocation:", err);
-      toast.error("An unexpected error occurred during analysis.");
+      toast.error("An unexpected error occurred during the operation.");
       setAnalysisResult(null);
+      setImprovedStory(null);
+      setOriginalStoryForComparison(null);
       return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAnalyzeStory = async () => {
-    const data = await invokeEdgeFunction("analyze", userStory);
-    if (data) {
-      setAnalysisResult(data as AnalysisResult);
-      toast.success("User story analysis complete!");
+  const handleExecuteOperation = async () => {
+    if (!userStory.trim()) {
+      toast.error("Please enter a user story to proceed.");
+      return;
+    }
+
+    setAnalysisResult(null); // Clear previous analysis results
+    setImprovedStory(null); // Clear previous improved story
+    setOriginalStoryForComparison(null); // Clear previous original story for comparison
+
+    if (operationMode === "analyze") {
+      const data = await invokeEdgeFunction("analyze", userStory);
+      if (data) {
+        setAnalysisResult(data as AnalysisResult);
+        toast.success("User story analysis complete!");
+      }
+    } else if (operationMode === "review_and_improve") {
+      setOriginalStoryForComparison(userStory); // Store original for comparison
+      const data = await invokeEdgeFunction("review_and_improve", userStory);
+      if (data && data.newStory) {
+        setImprovedStory(data.newStory);
+        toast.success("User story reviewed and improved!");
+      } else {
+        toast.error("Failed to review and improve story.");
+      }
     }
   };
 
@@ -92,6 +118,8 @@ const UserStoryQualityAnalyzer: React.FC = () => {
     setUserStory("");
     setAnalysisResult(null);
     setIsLoading(false);
+    setOriginalStoryForComparison(null);
+    setImprovedStory(null);
     toast.info("Analyzer reset to initial state.");
   };
 
@@ -108,6 +136,21 @@ const UserStoryQualityAnalyzer: React.FC = () => {
     } else {
         toast.error("Failed to apply suggestions.");
     }
+  };
+
+  const handleAcceptImprovedStory = () => {
+    if (improvedStory) {
+      setUserStory(improvedStory);
+      setImprovedStory(null);
+      setOriginalStoryForComparison(null);
+      toast.success("Improved story accepted!");
+    }
+  };
+
+  const handleDeclineImprovedStory = () => {
+    setImprovedStory(null);
+    setOriginalStoryForComparison(null);
+    toast.info("Improved story declined.");
   };
 
   const handleSuggestionToggle = (type: "improvement" | "acceptance", id: string) => {
@@ -162,7 +205,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="analyze">Analyze the quality of the story</SelectItem>
-              {/* Other modes will be added here */}
+              <SelectItem value="review_and_improve">Review and improve the story</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -198,8 +241,8 @@ const UserStoryQualityAnalyzer: React.FC = () => {
             <Copy className="mr-2 h-4 w-4" /> Copy
           </Button>
           <div className="space-x-2">
-            <Button onClick={handleAnalyzeStory} disabled={isLoading || !userStory}>
-              {isLoading ? "Analyzing..." : <><Sparkles className="mr-2 h-4 w-4" /> Analyze Story</>}
+            <Button onClick={handleExecuteOperation} disabled={isLoading || !userStory}>
+              {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
             </Button>
             <Button variant="secondary" onClick={handleReset} disabled={isLoading}>
               <RefreshCcw className="mr-2 h-4 w-4" /> Reset
@@ -208,8 +251,43 @@ const UserStoryQualityAnalyzer: React.FC = () => {
         </div>
       </div>
 
+      {/* Improved Story Comparison Section */}
+      {improvedStory && originalStoryForComparison && (
+        <div className="mb-8 p-6 border rounded-lg bg-card shadow-sm">
+          <h2 className="text-2xl font-semibold mb-4">Review Improvements</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Original Story</h3>
+              <Textarea
+                value={originalStoryForComparison}
+                rows={10}
+                readOnly
+                className="bg-muted resize-none"
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Improved Story</h3>
+              <Textarea
+                value={improvedStory}
+                rows={10}
+                readOnly
+                className="bg-muted resize-none"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={handleDeclineImprovedStory} disabled={isLoading}>
+              <X className="mr-2 h-4 w-4" /> Decline Changes
+            </Button>
+            <Button onClick={handleAcceptImprovedStory} disabled={isLoading}>
+              <Check className="mr-2 h-4 w-4" /> Accept Changes
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Analysis Results Section */}
-      {analysisResult && (
+      {analysisResult && operationMode === "analyze" && (
         <div className="mb-8 p-6 border rounded-lg bg-card shadow-sm">
           <h2 className="text-2xl font-semibold mb-4">Analysis Results</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -269,7 +347,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
       )}
 
       {/* Similar Historical Stories Section */}
-      {analysisResult && analysisResult.similarHistoricalStories.length > 0 && (
+      {analysisResult && analysisResult.similarHistoricalStories.length > 0 && operationMode === "analyze" && (
         <div className="p-6 border rounded-lg bg-card shadow-sm">
           <h2 className="text-2xl font-semibold mb-4">Similar Historical Stories</h2>
           <div className="overflow-x-auto">
