@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User, Settings, Sun, Moon } from "lucide-react"; // Import Sun and Moon icons
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,12 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession } from "@/components/SessionContextProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
+import { useTheme } from "next-themes"; // Import useTheme hook
 
 const ProfileButton: React.FC = () => {
   const { session, profile } = useSession();
   const navigate = useNavigate();
+  const { setTheme, theme } = useTheme(); // Use the useTheme hook
   const [displayName, setDisplayName] = useState("User");
   const [displayEmail, setDisplayEmail] = useState("");
 
@@ -103,9 +104,27 @@ const ProfileButton: React.FC = () => {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="flex items-center justify-between">
-          <span>Theme</span>
-          <ThemeToggle />
+        {/* Theme selection directly in this dropdown */}
+        <DropdownMenuItem onClick={() => setTheme("light")} className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Sun className="mr-2 h-4 w-4" />
+            <span>Light</span>
+          </div>
+          {theme === "light" && <span className="text-xs text-muted-foreground">Active</span>}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")} className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Moon className="mr-2 h-4 w-4" />
+            <span>Dark</span>
+          </div>
+          {theme === "dark" && <span className="text-xs text-muted-foreground">Active</span>}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")} className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Settings className="mr-2 h-4 w-4" /> {/* Using Settings icon for system theme */}
+            <span>System</span>
+          </div>
+          {theme === "system" && <span className="text-xs text-muted-foreground">Active</span>}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
