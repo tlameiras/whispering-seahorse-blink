@@ -177,7 +177,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
             <SelectContent>
               <SelectItem value="gpt-4o">GPT-4o</SelectItem>
               <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
-              <SelectItem value="gemini-2.5-flash">Gemini 1.5 Pro</SelectItem> {/* Changed to 1.5 Pro as per common usage */}
+              <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flas</SelectItem> 
             </SelectContent>
           </Select>
         </div>
