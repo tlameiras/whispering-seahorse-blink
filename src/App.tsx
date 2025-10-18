@@ -16,14 +16,12 @@ const App = () => (
       <Toaster />
       <Sonner
         classNames={{
-          // Base styles for all toasts (text color, border, shadow)
-          toast: "group toast group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          // Specific styles for default/info toasts
-          default: "group-[.toaster]:bg-card",
-          // Specific styles for success toasts
-          success: "group-[.toaster]:bg-success group-[.toaster]:text-success-foreground group-[.toaster]:border-success",
-          // Specific styles for error toasts
-          error: "group-[.toaster]:bg-destructive group-[.toaster]:text-destructive-foreground group-[.toaster]:border-destructive",
+          // Base styles for all toasts (default/info), including background
+          toast: "bg-card text-foreground border-border shadow-lg",
+          // Specific styles for success toasts, overriding the base background
+          success: "bg-success text-success-foreground border-success",
+          // Specific styles for error toasts, overriding the base background
+          error: "bg-destructive text-destructive-foreground border-destructive",
         }}
       />
       <BrowserRouter>
