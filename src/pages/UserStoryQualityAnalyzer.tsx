@@ -131,7 +131,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-4xl"> {/* Removed bg-gray-100 */}
       <h1 className="text-4xl font-bold mb-4 text-center">User Story Quality Analyzer</h1>
       <p className="text-lg text-muted-foreground mb-8 text-center">
         Enhance your user stories with AI-powered analysis, suggestions, and acceptance criteria generation.
@@ -177,7 +177,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
             <SelectContent>
               <SelectItem value="gpt-4o">GPT-4o</SelectItem>
               <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
-              <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+              <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem> {/* Changed to 1.5 Pro as per common usage */}
             </SelectContent>
           </Select>
         </div>
