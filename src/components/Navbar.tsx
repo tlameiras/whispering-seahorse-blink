@@ -38,7 +38,7 @@ const Navbar: React.FC = () => {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between">
         <Link to="/" className="mr-4 flex items-center space-x-2">
           <span className="font-bold text-lg">Internal Tools Hub</span>
