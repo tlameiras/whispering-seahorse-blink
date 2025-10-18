@@ -61,6 +61,8 @@ const UserStoryForm: React.FC = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [assistantMode, setAssistantMode] = useState<"analyze" | "review_and_improve" | "create_from_scratch">("analyze");
+  const [mainIdeas, setMainIdeas] = useState<string>("");
 
   useEffect(() => {
     if (isEditing) {
@@ -140,6 +142,26 @@ const UserStoryForm: React.FC = () => {
 
   const handleStoryPointsUpdate = (points: number) => {
     form.setValue("story_points", points);
+  };
+
+  const handleAcceptAssistantChanges = (newContent: string) => {
+    // For 'create_from_scratch' and 'review_and_improve', newContent is the full story text
+    form.setValue("description", newContent);
+    // If the new content includes AC, we might need to parse it out or assume it's part of the description.
+    // For now, we'll assume AC is embedded in the description for 'create_from_scratch' and 'review_and_improve'
+    // and the form's acceptance_criteria field will be managed separately or left empty.
+    // If 'analyze' mode was used, the AC would have been updated via handleStoryAssistantUpdate.
+    
+    // Reset assistant's comparison state
+    setMainIdeas(""); // Clear main ideas after accepting a generated story
+    setAssistantMode("analyze"); // Switch back to analyze mode after accepting
+    toast.success("Changes accepted and applied to the form!");
+  };
+
+  const handleDeclineAssistantChanges = () => {
+    // Reset assistant's comparison state
+    setMainIdeas(""); // Clear main ideas if declined
+    toast.info("Changes declined.");
   };
 
   if (loading && isEditing) {
@@ -261,11 +283,31 @@ const UserStoryForm: React.FC = () => {
             </Button>
           </div>
           <div className="space-y-6">
+            <div className="flex items-center space-x-2 mb-4">
+              <label htmlFor="assistant-mode" className="text-sm font-medium text-muted-foreground">
+                Assistant Mode:
+              </label>
+              <Select value={assistantMode} onValueChange={(value: "analyze" | "review_and_improve" | "create_from_scratch") => setAssistantMode(value)}>
+                <SelectTrigger id="assistant-mode" className="w-[220px] bg-card">
+                  <SelectValue placeholder="Select assistant mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="analyze">Analyze Story</SelectItem>
+                  <SelectItem value="review_and_improve">Review & Improve</SelectItem>
+                  <SelectItem value="create_from_scratch">Create from Scratch</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <StoryAssistant
-              storyText={form.watch("description")}
-              acceptanceCriteria={form.watch("acceptance_criteria") || []}
+              currentStoryText={form.watch("description")}
+              currentAcceptanceCriteria={form.watch("acceptance_criteria") || []}
               onStoryUpdate={handleStoryAssistantUpdate}
               onStoryPointsUpdate={handleStoryPointsUpdate}
+              mode={assistantMode}
+              mainIdeasInput={mainIdeas}
+              onMainIdeasChange={setMainIdeas}
+              onAcceptChanges={handleAcceptAssistantChanges}
+              onDeclineChanges={handleDeclineAssistantChanges}
             />
           </div>
         </form>

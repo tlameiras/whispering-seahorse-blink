@@ -4,14 +4,14 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Check, X, Copy, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { invokeAIAnalysis } from "@/utils/ai";
 
 interface Suggestion {
   id: string;
   text: string;
-  example: string;
+  example?: string;
   ticked: boolean;
 }
 
@@ -33,50 +33,119 @@ interface AnalysisResult {
   similarHistoricalStories: SimilarStory[];
 }
 
+interface GeneratedStoryOutput {
+  title: string;
+  description: string;
+}
+
 interface StoryAssistantProps {
-  storyText: string;
-  acceptanceCriteria: Suggestion[];
+  currentStoryText: string;
+  currentAcceptanceCriteria: Suggestion[];
   onStoryUpdate: (newStory: string, newAcceptanceCriteria: Suggestion[]) => void;
   onStoryPointsUpdate: (points: number) => void;
+  mode: "analyze" | "review_and_improve" | "create_from_scratch";
+  mainIdeasInput: string;
+  onMainIdeasChange: (ideas: string) => void;
+  onAcceptChanges: (newStory: string, newAcceptanceCriteria?: Suggestion[]) => void;
+  onDeclineChanges: () => void;
 }
 
 const StoryAssistant: React.FC<StoryAssistantProps> = ({
-  storyText,
-  acceptanceCriteria,
+  currentStoryText,
+  currentAcceptanceCriteria,
   onStoryUpdate,
   onStoryPointsUpdate,
+  mode,
+  mainIdeasInput,
+  onMainIdeasChange,
+  onAcceptChanges,
+  onDeclineChanges,
 }) => {
   const [llmModel, setLlmModel] = useState<string>("gemini-2.5-flash");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [originalContentForComparison, setOriginalContentForComparison] = useState<string | null>(null);
+  const [generatedOrImprovedContent, setGeneratedOrImprovedContent] = useState<string | null>(null);
 
+  // Reset comparison state when mode changes or story text changes significantly
   useEffect(() => {
-    // Reset analysis result if story text changes significantly
-    // This is a simple heuristic, can be improved
-    if (analysisResult && analysisResult.qualityScore && storyText.length > 0 && !storyText.includes(analysisResult.qualityLevel)) {
-      setAnalysisResult(null);
-    }
-  }, [storyText]);
+    setOriginalContentForComparison(null);
+    setGeneratedOrImprovedContent(null);
+    setAnalysisResult(null); // Also reset analysis result when mode changes
+  }, [mode, currentStoryText, mainIdeasInput]);
 
-  const handleAnalyzeStory = async () => {
-    if (!storyText.trim()) {
-      toast.error("Please enter a user story to analyze.");
-      return;
+  const handleCopy = () => {
+    const textToCopy = generatedOrImprovedContent || currentStoryText;
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy);
+      toast.success("Content copied to clipboard!");
+    } else {
+      toast.info("Nothing to copy.");
     }
+  };
+
+  const handleExecuteOperation = async () => {
+    setAnalysisResult(null);
+    setOriginalContentForComparison(null);
+    setGeneratedOrImprovedContent(null);
+
+    let storyInput = "";
+    if (mode === "create_from_scratch") {
+      storyInput = mainIdeasInput.trim();
+      if (!storyInput) {
+        toast.error("Please enter your main ideas to create a story.");
+        return;
+      }
+    } else {
+      storyInput = currentStoryText.trim();
+      if (!storyInput) {
+        toast.error("Please enter a user story to proceed.");
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
-      const data = await invokeAIAnalysis({
-        userStory: storyText,
-        llmModel,
-        operationMode: "analyze",
-      });
-      setAnalysisResult(data as AnalysisResult);
-      onStoryPointsUpdate((data as AnalysisResult).recommendedStoryPoints);
-      onStoryUpdate(storyText, (data as AnalysisResult).suggestedAcceptanceCriteria);
-      toast.success("User story analysis complete!");
+      if (mode === "analyze") {
+        const data = await invokeAIAnalysis({
+          userStory: storyInput,
+          llmModel,
+          operationMode: "analyze",
+        });
+        setAnalysisResult(data as AnalysisResult);
+        onStoryPointsUpdate((data as AnalysisResult).recommendedStoryPoints);
+        onStoryUpdate(currentStoryText, (data as AnalysisResult).suggestedAcceptanceCriteria);
+        toast.success("User story analysis complete!");
+      } else if (mode === "review_and_improve") {
+        setOriginalContentForComparison(storyInput);
+        const data = await invokeAIAnalysis({
+          userStory: storyInput,
+          llmModel,
+          operationMode: "review_and_improve",
+        });
+        if (data && data.newStory) {
+          setGeneratedOrImprovedContent(data.newStory);
+          toast.success("User story reviewed and improved!");
+        } else {
+          toast.error("Failed to review and improve story.");
+        }
+      } else if (mode === "create_from_scratch") {
+        setOriginalContentForComparison(storyInput); // Main ideas for comparison
+        const data = await invokeAIAnalysis({
+          userStory: storyInput,
+          llmModel,
+          operationMode: "create_story_from_scratch",
+        });
+        if (data) {
+          const generated = data as GeneratedStoryOutput;
+          setGeneratedOrImprovedContent(`## ${generated.title}\n\n${generated.description}`);
+          toast.success("User story generated from ideas!");
+        } else {
+          toast.error("Failed to generate story from ideas.");
+        }
+      }
     } catch (error: any) {
-      toast.error(error.message || "Failed to analyze story.");
-      setAnalysisResult(null);
+      toast.error(error.message || "Failed to perform operation.");
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +163,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
     setIsLoading(true);
     try {
       const data = await invokeAIAnalysis({
-        userStory: storyText,
+        userStory: currentStoryText,
         llmModel,
         operationMode: "apply_suggestions",
         suggestions: tickedSuggestions,
@@ -124,13 +193,15 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
           ),
         });
       } else {
-        const updatedCriteria = acceptanceCriteria.map(c =>
+        const updatedCriteria = currentAcceptanceCriteria.map(c =>
           c.id === id ? { ...c, ticked: !c.ticked } : c
         );
-        onStoryUpdate(storyText, updatedCriteria);
+        onStoryUpdate(currentStoryText, updatedCriteria);
       }
     }
   };
+
+  const showComparisonSection = originalContentForComparison && generatedOrImprovedContent;
 
   return (
     <div className="space-y-6">
@@ -153,11 +224,76 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
         </div>
       </div>
 
-      <Button onClick={handleAnalyzeStory} disabled={isLoading || !storyText.trim()} className="w-full">
-        {isLoading ? "Analyzing..." : <><Sparkles className="mr-2 h-4 w-4" /> Analyze Story</>}
-      </Button>
+      {mode === "create_from_scratch" && (
+        <Textarea
+          placeholder="Describe your main ideas for the user story here (e.g., 'As a user, I want to log in using my email and password. I need to be able to reset my password if I forget it.')."
+          value={mainIdeasInput}
+          onChange={(e) => onMainIdeasChange(e.target.value)}
+          rows={8}
+          className="mb-4 bg-[var(--textarea-bg-intermediate)]"
+        />
+      )}
 
-      {analysisResult && (
+      <div className="flex justify-between items-center">
+        <Button variant="outline" onClick={handleCopy} disabled={isLoading || (!currentStoryText.trim() && !mainIdeasInput.trim())}>
+          <Copy className="mr-2 h-4 w-4" /> Copy
+        </Button>
+        <div className="flex items-center gap-2">
+          {mode === "analyze" && analysisResult && analysisResult.qualityLevel !== "Excellent" && (
+            <Button onClick={handleApplySuggestions} disabled={isLoading}>
+              {isLoading ? "Applying..." : "Apply Suggestions"}
+            </Button>
+          )}
+          <Button
+            onClick={handleExecuteOperation}
+            disabled={
+              isLoading ||
+              (mode === "create_from_scratch" ? !mainIdeasInput.trim() : !currentStoryText.trim())
+            }
+          >
+            {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
+          </Button>
+          <Button variant="secondary" onClick={() => {
+            setAnalysisResult(null);
+            setOriginalContentForComparison(null);
+            setGeneratedOrImprovedContent(null);
+            if (mode === "create_from_scratch") onMainIdeasChange("");
+            toast.info("Assistant state reset.");
+          }} disabled={isLoading}>
+            <RefreshCcw className="mr-2 h-4 w-4" /> Reset
+          </Button>
+        </div>
+      </div>
+
+      {showComparisonSection && (
+        <div className="p-4 border rounded-lg bg-card shadow-sm space-y-4">
+          <h4 className="text-lg font-semibold">Review Changes</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="font-medium mb-2">
+                {mode === "create_from_scratch" ? "Your Main Ideas" : "Original Story"}
+              </p>
+              <Textarea value={originalContentForComparison || ""} rows={10} readOnly className="bg-muted resize-none" />
+            </div>
+            <div>
+              <p className="font-medium mb-2">
+                {mode === "create_from_scratch" ? "Generated Story" : "Improved Story"}
+              </p>
+              <Textarea value={generatedOrImprovedContent || ""} rows={10} readOnly className="bg-muted resize-none" />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={onDeclineChanges} disabled={isLoading}>
+              <X className="mr-2 h-4 w-4" /> Decline
+            </Button>
+            <Button onClick={() => onAcceptChanges(generatedOrImprovedContent || "")} disabled={isLoading}>
+              <Check className="mr-2 h-4 w-4" /> Accept
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {analysisResult && mode === "analyze" && (
         <div className="p-4 border rounded-lg bg-card shadow-sm space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-3 border rounded-md bg-muted">
@@ -195,15 +331,12 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
                   </div>
                 ))}
               </div>
-              <Button onClick={handleApplySuggestions} disabled={isLoading} className="w-full mt-4">
-                {isLoading ? "Applying..." : "Apply Selected Suggestions"}
-              </Button>
             </>
           )}
 
           <h4 className="text-lg font-semibold mt-4">Suggested Acceptance Criteria</h4>
           <div className="space-y-3">
-            {acceptanceCriteria.map((criteria) => (
+            {currentAcceptanceCriteria.map((criteria) => (
               <div key={criteria.id} className="flex items-start space-x-2 p-2 border rounded-md bg-secondary">
                 <input
                   type="checkbox"
