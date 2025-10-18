@@ -43,7 +43,7 @@ serve(async (req) => {
       promptContent = `Analyze the following user story for quality, provide improvement suggestions, suggest acceptance criteria, and find similar historical stories. Return the output as a JSON object with the following structure:
       {
         "qualityScore": number (0-100),
-        "qualityLevel": string (e.g., "Excellent", "Good", "Needs Improvements", "Poor"),
+        "qualityLevel": string ("Excellent" , "Good", "Needs Improvements", "Poor"),
         "recommendedStoryPoints": number,
         "improvementSuggestions": [{ "id": string, "text": string, "example": string, "ticked": boolean }],
         "suggestedAcceptanceCriteria": [{ "id": string, "text": string, "example": string, "ticked": boolean }],

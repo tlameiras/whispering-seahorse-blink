@@ -37,7 +37,7 @@ interface AnalysisResult {
 const UserStoryQualityAnalyzer: React.FC = () => {
   const [userStory, setUserStory] = useState<string>("");
   const [operationMode, setOperationMode] = useState<string>("analyze");
-  const [llmModel, setLlmModel] = useState<string>("gpt-4o");
+  const [llmModel, setLlmModel] = useState<string>("gemini-2.5-flash"); // Changed default to "gemini-2.5-flash"
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -131,7 +131,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl"> {/* Removed bg-gray-100 */}
+    <div className="container mx-auto p-6 max-w-4xl">
       <h1 className="text-4xl font-bold mb-4 text-center">User Story Quality Analyzer</h1>
       <p className="text-lg text-muted-foreground mb-8 text-center">
         Enhance your user stories with AI-powered analysis, suggestions, and acceptance criteria generation.
@@ -175,9 +175,9 @@ const UserStoryQualityAnalyzer: React.FC = () => {
               <SelectValue placeholder="Select LLM model" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem> 
               <SelectItem value="gpt-4o">GPT-4o</SelectItem>
               <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
-              <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem> 
             </SelectContent>
           </Select>
         </div>
