@@ -9,8 +9,9 @@ import UserStoryManager from "./pages/UserStoryManager";
 import UserStoryForm from "./pages/UserStoryForm";
 import UserStoryDetail from "./pages/UserStoryDetail";
 import Navbar from "./components/Navbar";
-import Login from "./pages/Login"; // New import
-import { SessionContextProvider } from "./components/SessionContextProvider"; // New import
+import Login from "./pages/Login";
+import Profile from "./pages/Profile"; // New import for Profile page
+import { SessionContextProvider } from "./components/SessionContextProvider";
 
 const queryClient = new QueryClient();
 
@@ -26,13 +27,14 @@ const App = () => (
         }}
       />
       <BrowserRouter>
-        <SessionContextProvider> {/* Wrap the entire app with SessionContextProvider */}
+        <SessionContextProvider>
           <div className="min-h-screen flex flex-col">
             <Navbar />
             <main className="flex-grow bg-background text-foreground">
               <Routes>
                 <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} /> {/* New Login route */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/profile" element={<Profile />} /> {/* New Profile route */}
                 <Route path="/user-story-analyzer" element={<UserStoryQualityAnalyzer />} />
                 <Route path="/user-story-manager" element={<UserStoryManager />} />
                 <Route path="/user-story-manager/new" element={<UserStoryForm />} />

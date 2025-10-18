@@ -3,7 +3,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -14,6 +13,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import ProfileButton from "./ProfileButton"; // Import the new ProfileButton
 
 const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
@@ -53,7 +53,7 @@ const Navbar: React.FC = () => {
 
         {isMobile ? (
           <div className="flex items-center space-x-2">
-            <ThemeToggle />
+            <ProfileButton /> {/* Use ProfileButton here */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon">
@@ -75,7 +75,7 @@ const Navbar: React.FC = () => {
                 {navLinks}
               </NavigationMenuList>
             </NavigationMenu>
-            <ThemeToggle />
+            <ProfileButton /> {/* Use ProfileButton here */}
           </div>
         )}
       </div>
