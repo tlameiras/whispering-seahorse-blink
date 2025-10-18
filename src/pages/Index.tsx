@@ -1,12 +1,11 @@
 "use client";
 
-import { MadeWithDyad } from "@/components/made-with-dyad";
 import ToolCard from "@/components/ToolCard";
 import { Sparkles } from "lucide-react";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4"> {/* Removed bg-gray-100 dark:bg-background */}
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="text-center mb-12">
         <h1 className="text-5xl font-extrabold mb-4 text-gray-900 dark:text-foreground">
           Welcome to Your Internal Tools Hub
@@ -31,8 +30,6 @@ const Index = () => {
         />
         {/* Future tools can be added here */}
       </div>
-
-      <MadeWithDyad />
     </div>
   );
 };
