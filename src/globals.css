@@ -109,3 +109,42 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Sonner toast customizations */
+@layer components {
+  /* base toast — uses card/popover tokens so it adapts to theme */
+  .toast {
+    @apply rounded-md border p-3 shadow-lg;
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+    border-color: hsl(var(--border));
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .toast[data-type="success"] {
+    background-color: hsl(var(--success));
+    color: hsl(var(--success-foreground));
+    border-color: color-mix(in srgb, hsl(var(--success)) 80%, hsl(var(--border)) 20%);
+  }
+
+  .toast[data-type="error"] {
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    border-color: color-mix(in srgb, hsl(var(--destructive)) 80%, hsl(var(--border)) 20%);
+  }
+
+  /* Optional: smaller text for description and styles for actions */
+  .toast-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .toast-action {
+    @apply px-3 py-1 rounded bg-primary text-primary-foreground text-sm;
+  }
+
+  .toast-cancel {
+    @apply px-3 py-1 rounded bg-muted text-muted-foreground text-sm;
+  }
+}

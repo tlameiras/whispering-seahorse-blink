@@ -12,15 +12,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Sonner
-        classNames={{
-          toast: "text-foreground border-border shadow-lg",
-          default: "bg-card",
-          // Testing with direct Tailwind colors to diagnose the issue
-          success: "bg-green-500 text-white border-green-600 !bg-green-500",
-          error: "bg-red-500 text-white border-red-600 !bg-red-500",
-        }}
-      />
+      <Sonner />
       <BrowserRouter>
         <div className="min-h-screen flex flex-col">
           <Navbar />
