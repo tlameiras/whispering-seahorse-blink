@@ -14,7 +14,13 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
+      <Sonner
+        classNames={{
+          toast: "group toast group-[.toaster]:bg-card group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
+          success: "group toast group-[.toaster]:bg-success group-[.toaster]:text-success-foreground group-[.toaster]:border-success group-[.toaster]:shadow-lg",
+          error: "group toast group-[.toaster]:bg-destructive group-[.toaster]:text-destructive-foreground group-[.toaster]:border-destructive group-[.toaster]:shadow-lg",
+        }}
+      />
       <BrowserRouter>
         <div className="min-h-screen flex flex-col">
           <Navbar /> {/* Use the Navbar component here */}
