@@ -237,16 +237,10 @@ const UserStoryQualityAnalyzer: React.FC = () => {
         Enhance your user stories with AI-powered analysis, suggestions, and acceptance criteria generation.
       </p>
 
-      {/* Dynamic Header Section */}
-      {analysisResult && operationMode === "analyze" && (
-        <div className="mb-8 p-4 border rounded-lg bg-card shadow-sm flex items-center justify-between">
-          {analysisResult.qualityLevel === "Excellent" ? (
-            <span className="text-lg font-semibold text-green-600 dark:text-green-400">Story ready to go! 🎉</span>
-          ) : (
-            <Button onClick={handleApplySuggestions} disabled={isLoading}>
-              {isLoading ? "Applying..." : "Apply Suggestions"}
-            </Button>
-          )}
+      {/* Dynamic Header Section - Removed Apply Suggestions button from here */}
+      {analysisResult && operationMode === "analyze" && analysisResult.qualityLevel === "Excellent" && (
+        <div className="mb-8 p-4 border rounded-lg bg-card shadow-sm flex items-center justify-center">
+          <span className="text-lg font-semibold text-green-600 dark:text-green-400">Story ready to go! 🎉</span>
         </div>
       )}
 
@@ -309,6 +303,12 @@ const UserStoryQualityAnalyzer: React.FC = () => {
             <Copy className="mr-2 h-4 w-4" /> Copy
           </Button>
           <div className="space-x-2">
+            {/* Moved Apply Suggestions button here */}
+            {analysisResult && operationMode === "analyze" && analysisResult.qualityLevel !== "Excellent" && (
+              <Button onClick={handleApplySuggestions} disabled={isLoading}>
+                {isLoading ? "Applying..." : "Apply Suggestions"}
+              </Button>
+            )}
             <Button onClick={handleExecuteOperation} disabled={isLoading || (operationMode === "create_story_from_scratch" ? !mainIdeas.trim() : !userStory.trim())}>
               {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
             </Button>
