@@ -12,27 +12,22 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* The shadcn/ui Toaster component is removed as sonner is used for toasts */}
       <Sonner
         classNames={{
-          // Common styles for all toasts (text color, border, shadow)
           toast: "text-foreground border-border shadow-lg",
-          // Specific styles for default/info toasts
           default: "bg-card",
-          // Specific styles for success toasts, using !important for background
-          success: "bg-success text-success-foreground border-success !bg-success",
-          // Specific styles for error toasts, using !important for background
-          error: "bg-destructive text-destructive-foreground border-destructive !bg-destructive",
+          // Testing with direct Tailwind colors to diagnose the issue
+          success: "bg-green-500 text-white border-green-600 !bg-green-500",
+          error: "bg-red-500 text-white border-red-600 !bg-red-500",
         }}
       />
       <BrowserRouter>
         <div className="min-h-screen flex flex-col">
-          <Navbar /> {/* Use the Navbar component here */}
+          <Navbar />
           <main className="flex-grow bg-background text-foreground">
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/user-story-analyzer" element={<UserStoryQualityAnalyzer />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
