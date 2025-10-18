@@ -191,7 +191,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
           value={userStory}
           onChange={(e) => setUserStory(e.target.value)}
           rows={8}
-          className="mb-4"
+          className="mb-4 bg-[var(--textarea-bg-intermediate)]"
         />
         <div className="flex justify-between items-center">
           <Button variant="outline" onClick={handleCopy}>
