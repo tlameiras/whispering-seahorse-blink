@@ -302,7 +302,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
           <Button variant="outline" onClick={handleCopy} disabled={isLoading}>
             <Copy className="mr-2 h-4 w-4" /> Copy
           </Button>
-          <div className="space-x-2">
+          <div className="flex items-center gap-2"> {/* Changed to flex items-center gap-2 */}
             {/* Moved Apply Suggestions button here */}
             {analysisResult && operationMode === "analyze" && analysisResult.qualityLevel !== "Excellent" && (
               <Button onClick={handleApplySuggestions} disabled={isLoading}>
