@@ -5,10 +5,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import UserStoryQualityAnalyzer from "./pages/UserStoryQualityAnalyzer";
-import UserStoryManager from "./pages/UserStoryManager"; // New import
-import UserStoryForm from "./pages/UserStoryForm"; // New import
-import UserStoryDetail from "./pages/UserStoryDetail"; // New import
+import UserStoryManager from "./pages/UserStoryManager";
+import UserStoryForm from "./pages/UserStoryForm";
+import UserStoryDetail from "./pages/UserStoryDetail";
 import Navbar from "./components/Navbar";
+import Login from "./pages/Login"; // New import
+import { SessionContextProvider } from "./components/SessionContextProvider"; // New import
 
 const queryClient = new QueryClient();
 
@@ -24,20 +26,23 @@ const App = () => (
         }}
       />
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col">
-          <Navbar />
-          <main className="flex-grow bg-background text-foreground">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/user-story-analyzer" element={<UserStoryQualityAnalyzer />} />
-              <Route path="/user-story-manager" element={<UserStoryManager />} /> {/* New route */}
-              <Route path="/user-story-manager/new" element={<UserStoryForm />} /> {/* New route */}
-              <Route path="/user-story-manager/:id" element={<UserStoryDetail />} /> {/* New route */}
-              <Route path="/user-story-manager/:id/edit" element={<UserStoryForm />} /> {/* New route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-        </div>
+        <SessionContextProvider> {/* Wrap the entire app with SessionContextProvider */}
+          <div className="min-h-screen flex flex-col">
+            <Navbar />
+            <main className="flex-grow bg-background text-foreground">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} /> {/* New Login route */}
+                <Route path="/user-story-analyzer" element={<UserStoryQualityAnalyzer />} />
+                <Route path="/user-story-manager" element={<UserStoryManager />} />
+                <Route path="/user-story-manager/new" element={<UserStoryForm />} />
+                <Route path="/user-story-manager/:id" element={<UserStoryDetail />} />
+                <Route path="/user-story-manager/:id/edit" element={<UserStoryForm />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+          </div>
+        </SessionContextProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

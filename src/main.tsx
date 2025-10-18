@@ -1,10 +1,12 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";
-import { ThemeProvider } from "./components/ThemeProvider.tsx";
+// ThemeProvider is now handled inside SessionContextProvider
+// import { ThemeProvider } from "./components/ThemeProvider.tsx"; 
 
 createRoot(document.getElementById("root")!).render(
-  <ThemeProvider defaultTheme="system" attribute="class">
+  // ThemeProvider is now inside SessionContextProvider
+  // <ThemeProvider defaultTheme="system" attribute="class">
     <App />
-  </ThemeProvider>
+  // </ThemeProvider>
 );
