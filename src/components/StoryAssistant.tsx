@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Check, X, Copy } from "lucide-react"; // Removed RefreshCcw icon
+import { Sparkles, Check, X, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { invokeAIAnalysis } from "@/utils/ai";
 
@@ -47,7 +47,7 @@ interface StoryAssistantProps {
   mainIdeasInput: string;
   onMainIdeasChange: (ideas: string) => void;
   onAcceptChanges: (newStory: string, newAcceptanceCriteria?: Suggestion[]) => void;
-  onDeclineChanges: () => void; // Renamed to parentOnDeclineChanges internally
+  onDeclineChanges: () => void;
 }
 
 const StoryAssistant: React.FC<StoryAssistantProps> = ({
@@ -59,7 +59,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   mainIdeasInput,
   onMainIdeasChange,
   onAcceptChanges,
-  onDeclineChanges: parentOnDeclineChanges, // Renamed prop to avoid conflict with local handler
+  onDeclineChanges,
 }) => {
   const [llmModel, setLlmModel] = useState<string>("gemini-2.5-flash");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -67,12 +67,8 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   const [originalContentForComparison, setOriginalContentForComparison] = useState<string | null>(null);
   const [generatedOrImprovedContent, setGeneratedOrImprovedContent] = useState<string | null>(null);
 
-  // Reset comparison state when mode changes or story text changes significantly
-  useEffect(() => {
-    setOriginalContentForComparison(null);
-    setGeneratedOrImprovedContent(null);
-    setAnalysisResult(null); // Also reset analysis result when mode changes
-  }, [mode, currentStoryText, mainIdeasInput]);
+  // Removed the useEffect that was prematurely resetting state on input/mode changes.
+  // State will now only be reset when handleExecuteOperation is called.
 
   const handleCopy = () => {
     const textToCopy = generatedOrImprovedContent || currentStoryText;
@@ -85,6 +81,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   };
 
   const handleExecuteOperation = async () => {
+    // Clear all previous results before executing a new operation
     setAnalysisResult(null);
     setOriginalContentForComparison(null);
     setGeneratedOrImprovedContent(null);
@@ -204,7 +201,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   const handleDecline = () => {
     setOriginalContentForComparison(null);
     setGeneratedOrImprovedContent(null);
-    parentOnDeclineChanges(); // Call the parent's handler
+    onDeclineChanges(); // Call the parent's handler
   };
 
   const showComparisonSection = originalContentForComparison && generatedOrImprovedContent;
@@ -267,7 +264,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
         <div className="p-4 border rounded-lg bg-card shadow-sm space-y-4">
           <h4 className="text-lg font-semibold">Review Changes</h4>
           <div className={`grid gap-4 ${mode === "review_and_improve" ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
-            {mode !== "review_and_improve" && ( // Only show original if not in review_and_improve mode
+            {mode !== "review_and_improve" && (
               <div>
                 <p className="font-medium mb-2">
                   {mode === "create_from_scratch" ? "Your Main Ideas" : "Original Story"}
