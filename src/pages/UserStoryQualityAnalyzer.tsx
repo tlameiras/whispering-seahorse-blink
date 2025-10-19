@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react"; // Import useRef
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,6 +50,29 @@ const UserStoryQualityAnalyzer: React.FC = () => {
   const [originalStoryForComparison, setOriginalStoryForComparison] = useState<string | null>(null);
   const [improvedStory, setImprovedStory] = useState<string | null>(null);
   const [generatedStoryOutput, setGeneratedStoryOutput] = useState<GeneratedStoryOutput | null>(null); // Keep for internal data structure
+
+  // Use a ref to store the previous operationMode
+  const prevOperationModeRef = useRef<string>(operationMode);
+
+  useEffect(() => {
+    const prevMode = prevOperationModeRef.current;
+    const currentMode = operationMode;
+
+    // Logic to transfer content when switching modes
+    if (prevMode !== currentMode) {
+      if ((prevMode === "analyze" || prevMode === "review_and_improve") && currentMode === "create_story_from_scratch") {
+        // If switching from analyze/review to create, copy userStory to mainIdeas
+        setMainIdeas(userStory);
+      } else if (prevMode === "create_story_from_scratch" && (currentMode === "analyze" || currentMode === "review_and_improve")) {
+        // If switching from create to analyze/review, copy mainIdeas to userStory
+        setUserStory(mainIdeas);
+      }
+    }
+
+    // Update the ref for the next render
+    prevOperationModeRef.current = currentMode;
+  }, [operationMode, userStory, mainIdeas]); // Dependencies: operationMode, and the values that might be transferred
+
 
   const handleCopy = () => {
     // Copy either the current userStory or the improvedStory if it's being reviewed
