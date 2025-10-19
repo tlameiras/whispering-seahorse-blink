@@ -101,7 +101,7 @@ serve(async (req) => {
         
         Main Ideas: "${userStory}"
         
-        Return the output as a JSON object with the following structure:
+        Return ONLY the JSON object with the following structure, and nothing else:
         {
           "title": "string",
           "description": "string" // This string should include the user story, 'Details:', 'Scope:', and 'Acceptance Criteria:' sections.
@@ -197,7 +197,17 @@ serve(async (req) => {
     }
 
     // For 'analyze', 'create_story_from_scratch', and 'apply_suggestions', parse JSON
-    const parsedOutput = JSON.parse(llmOutput);
+    let parsedOutput;
+    try {
+      parsedOutput = JSON.parse(llmOutput);
+    } catch (parseError) {
+      console.error("Failed to parse LLM output as JSON:", llmOutput, parseError);
+      return new Response(JSON.stringify({ error: "LLM returned malformed JSON or unexpected text.", rawOutput: llmOutput }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+    
 
     return new Response(JSON.stringify(parsedOutput), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
