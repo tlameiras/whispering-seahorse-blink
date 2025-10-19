@@ -41,7 +41,7 @@ serve(async (req) => {
     let responseFormat: "application/json" | "text/plain" = "application/json";
 
     if (operationMode === "analyze") {
-      promptContent = `Analyze the following user story for quality, provide improvement suggestions, suggest acceptance criteria, and find similar historical stories. Return the output as a JSON object with the following structure:
+      promptContent = `Analyze the following story for quality, provide improvement suggestions, suggest acceptance criteria, and find similar historical stories. Return the output as a JSON object with the following structure:
       {
         "qualityScore": number (0-100),
         "qualityLevel": string ("Excellent" , "Good", "Needs Improvements", "Poor"),
@@ -51,8 +51,10 @@ serve(async (req) => {
         "similarHistoricalStories": [{ "id": string, "title": string, "status": string, "featureId": string, "featureName": string, "matchingPercentage": number }]
       }
       
-      User Story: "${userStory}"
+      Story: "${userStory}"
       
+      A Story should have the user story format, a clear description, scope, and acceptance Criteria. Take this into consideration when giving the quality score or suggesting improvements.
+
       Ensure all 'id' fields are unique strings. For 'ticked', default to true for suggestions/criteria that are generally good practices or directly applicable, and false for more advanced or optional ones. For 'similarHistoricalStories', generate 3 plausible mock stories with varying matching percentages.`;
       responseFormat = "application/json";
     } else if (operationMode === "apply_suggestions") {
