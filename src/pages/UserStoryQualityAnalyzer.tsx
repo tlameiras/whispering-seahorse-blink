@@ -432,7 +432,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
                 <Card key={story.id} className="w-full">
                   <CardContent className="p-4 flex justify-between items-center">
                     <div className="flex flex-col">
-                      <CardTitle className="text-lg font-bold">{story.title}</CardTitle>
+                      <CardTitle className="text-base font-semibold">{story.title}</CardTitle> {/* Changed text-lg font-bold to text-base font-semibold */}
                       <CardDescription className="text-sm text-muted-foreground">
                         {story.id} | {story.status}
                       </CardDescription>
