@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Edit, Brain, CalendarDays, Hash, ListChecks, Lightbulb } from "lucide-react";
+import { ArrowLeft, Edit, Brain, CalendarDays, Hash, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -116,7 +116,7 @@ const UserStoryDetail: React.FC = () => {
 
           <Separator />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4"> {/* Changed to grid-cols-1 as AC is removed */}
             <div>
               <h3 className="text-xl font-semibold mb-2">Details</h3>
               <div className="space-y-2 text-muted-foreground">
@@ -138,20 +138,7 @@ const UserStoryDetail: React.FC = () => {
                 </p>
               </div>
             </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Acceptance Criteria</h3>
-              {story.acceptance_criteria && story.acceptance_criteria.length > 0 ? (
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  {story.acceptance_criteria.map((criteria, index) => (
-                    <li key={criteria.id || index} className={criteria.ticked ? "line-through text-gray-500" : ""}>
-                      {criteria.text}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground">No acceptance criteria defined.</p>
-              )}
-            </div>
+            {/* Acceptance Criteria section removed */}
           </div>
         </CardContent>
       </Card>
