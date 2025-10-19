@@ -20,13 +20,7 @@ const Navbar: React.FC = () => {
 
   const navLinks = (
     <>
-      <NavigationMenuItem>
-        <Link to="/">
-          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-            Home
-          </NavigationMenuLink>
-        </Link>
-      </NavigationMenuItem>
+      {/* Removed the Home button as the app name already links to home */}
       <NavigationMenuItem>
         <Link to="/user-story-analyzer">
           <NavigationMenuLink className={navigationMenuTriggerStyle()}>
