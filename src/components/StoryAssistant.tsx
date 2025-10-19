@@ -316,6 +316,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   const showComparisonSection = currentOriginalContentForComparison && currentGeneratedOrImprovedContent;
 
   // Determine if the comparison should be single column (only generated/improved story)
+  // It's single column for review_and_improve, create_from_scratch, AND for analyze mode when applying suggestions.
   const isSingleColumnComparison = mode === "review_and_improve" || mode === "create_from_scratch" || (mode === "analyze" && analyzeModeState.isApplyingSuggestionsReview);
 
   return (
@@ -363,6 +364,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
         <div className="p-4 border rounded-lg bg-card shadow-sm space-y-4">
           <h4 className="text-lg font-semibold">Review Changes</h4>
           <div className={`grid gap-4 ${isSingleColumnComparison ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
+            {/* Only show original story column if NOT single column comparison */}
             {!isSingleColumnComparison && (
               <div>
                 <p className="font-medium mb-2">
@@ -389,7 +391,8 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
         </div>
       )}
 
-      {currentAnalysisResult && mode === "analyze" && (
+      {/* Analysis Results Section - Only show if in 'analyze' mode AND not currently reviewing applied suggestions */}
+      {currentAnalysisResult && mode === "analyze" && !analyzeModeState.isApplyingSuggestionsReview && (
         <div className="p-4 border rounded-lg bg-card shadow-sm space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-3 border rounded-md bg-muted">
