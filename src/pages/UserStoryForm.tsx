@@ -191,7 +191,7 @@ const UserStoryForm: React.FC = () => {
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="As a user, I want..." {...field} />
+                    <Input placeholder="As a user, I want..." className="bg-card" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -207,7 +207,7 @@ const UserStoryForm: React.FC = () => {
                     <Textarea
                       placeholder="Describe the user story in detail..."
                       rows={10}
-                      className="bg-[var(--textarea-bg-intermediate)]"
+                      className="bg-card" {/* Changed to bg-card */}
                       {...field}
                     />
                   </FormControl>
@@ -246,7 +246,7 @@ const UserStoryForm: React.FC = () => {
                 <FormItem>
                   <FormLabel>Feature/Epic</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., User Authentication" {...field} />
+                    <Input placeholder="e.g., User Authentication" className="bg-card" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -259,7 +259,7 @@ const UserStoryForm: React.FC = () => {
                 <FormItem>
                   <FormLabel>Sprint</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Sprint 1" {...field} />
+                    <Input placeholder="e.g., Sprint 1" className="bg-card" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -272,7 +272,7 @@ const UserStoryForm: React.FC = () => {
                 <FormItem>
                   <FormLabel>Story Points</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 5" {...field} value={field.value === null ? "" : field.value} />
+                    <Input type="number" placeholder="e.g., 5" className="bg-card" {...field} value={field.value === null ? "" : field.value} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
