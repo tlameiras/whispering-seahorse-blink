@@ -25,7 +25,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { session, profile, isLoading: isSessionLoading } = useSession();
+  const { session, profile, isLoading: isSessionLoading, refreshProfile } = useSession(); // Get refreshProfile
   const [loading, setLoading] = useState(false);
 
   const form = useForm<ProfileFormValues>({
@@ -72,8 +72,7 @@ const Profile: React.FC = () => {
       console.error("Error updating profile:", error);
     } else {
       toast.success("Profile updated successfully!");
-      // Optionally, trigger a re-fetch of session/profile in SessionContextProvider
-      // For now, a page refresh or re-login would show the updated data
+      await refreshProfile(); // Refresh profile data after successful update
     }
     setLoading(false);
   };
