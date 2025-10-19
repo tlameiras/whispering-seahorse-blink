@@ -305,7 +305,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
       {/* User Story Input Section */}
       <div className="mb-8 p-6 border rounded-lg bg-card shadow-sm">
         <h2 className="text-2xl font-semibold mb-4">
-          {operationMode === "create_story_from_scratch" ? "Enter Main Ideas" : "Enter Your User Story"}
+          {operationMode === "create_story_from_scratch" ? "Start creating your Story" : "Enter Your User Story"}
         </h2>
         <Textarea
           placeholder={
