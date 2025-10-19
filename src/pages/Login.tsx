@@ -38,7 +38,7 @@ const Login: React.FC = () => {
               default: {
                 colors: {
                   brand: 'hsl(var(--primary))', // Default button background
-                  brandAccent: 'hsl(var(--secondary))', // Hover/focus button background
+                  brandAccent: 'hsl(var(--sidebar-foreground))', // Hover/focus button background
                   brandButtonText: 'hsl(var(--primary-foreground))', // Default button text color
                 },
               },

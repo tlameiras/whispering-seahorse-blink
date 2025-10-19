@@ -56,9 +56,11 @@ const Navbar: React.FC = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right">
-                <nav className="flex flex-col gap-4 pt-6">
-                  {navLinks}
-                </nav>
+                <NavigationMenu className="w-full"> {/* Wrap navLinks with NavigationMenu */}
+                  <NavigationMenuList className="flex flex-col gap-4 pt-6">
+                    {navLinks}
+                  </NavigationMenuList>
+                </NavigationMenu>
               </SheetContent>
             </Sheet>
           </div>
