@@ -74,9 +74,10 @@ serve(async (req) => {
           ? acceptanceCriteriaList.map((s: string) => `- ${s}`).join('\n')
           : 'None';
 
-        promptContent = `Given the original user story, a list of improvement suggestions, and a list of acceptance criteria, rewrite the user story to incorporate all ticked items.
+        promptContent = `Given the original user story, a list of improvement suggestions, and a list of acceptance criteria, rewrite the user story to incorporate these changes.
         The output MUST be a JSON object with a 'title' and a 'description'. The 'description' should be comprehensive, including the user story itself, a 'Details:' section for context, a 'Scope:' section for actionable items, and an 'Acceptance Criteria:' section with bullet points for what will be checked to accept the story when completed.
         Crucially, ONLY include acceptance criteria points that are explicitly provided in the 'Acceptance Criteria to include' list. Do NOT generate new acceptance criteria.
+        Crucially, ONLY include improvement suggestions that are explicitly provided in the 'Improvement Suggestions to apply' list. Do NOT generate new improvements.
 
         Original User Story: "${userStory}"
 
