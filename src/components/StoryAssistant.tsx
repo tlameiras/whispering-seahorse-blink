@@ -124,9 +124,9 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   };
 
   const handleExecuteOperation = async () => {
-    // Clear current mode's results before executing a new operation
+    // Clear current mode's comparison results before executing a new operation
     if (mode === "analyze") {
-      setAnalyzeModeState(initialModeResults);
+      setAnalyzeModeState(prev => ({ ...prev, originalContentForComparison: null, generatedTitle: null, generatedDescription: null }));
     } else if (mode === "review_and_improve") {
       setReviewModeState(initialModeResults);
     } else if (mode === "create_from_scratch") {
@@ -196,7 +196,14 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   const handleApplySuggestions = async () => {
     if (!currentAnalysisResult) return;
 
-    // Combine improvement suggestions and acceptance criteria, add type, and filter ticked ones
+    // Clear any previous comparison state for 'analyze' mode
+    setAnalyzeModeState(prev => ({
+      ...prev,
+      originalContentForComparison: null,
+      generatedTitle: null,
+      generatedDescription: null,
+    }));
+
     const combinedTickedSuggestions = [
       ...currentAnalysisResult.improvementSuggestions.filter(s => s.ticked).map(s => ({ ...s, type: "improvement" as const })),
       ...currentAcceptanceCriteria.filter(c => c.ticked).map(c => ({ ...c, type: "acceptance" as const })),
@@ -217,18 +224,14 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
       });
 
       if (data && data.title && data.description) { // Expecting title and description
-        // Directly update the parent form's story and title
-        onStoryUpdate(data.description, currentAcceptanceCriteria, data.title);
-        
-        // Clear the comparison-specific states for analyze mode
         setAnalyzeModeState(prev => ({
           ...prev,
-          originalContentForComparison: null,
-          generatedTitle: null,
-          generatedDescription: null,
+          originalContentForComparison: currentStoryText, // Store the current story from the form
+          generatedTitle: data.title,
+          generatedDescription: data.description,
+          // analysisResult should remain as is, it's already set from the initial 'analyze' operation
         }));
-
-        toast.success("Suggestions applied and story updated!");
+        toast.success("Suggestions applied! Review the generated story below.");
       } else {
         toast.error("Failed to apply suggestions.");
       }
@@ -264,7 +267,12 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
     let originalContentToRestore: string | null = null;
     if (mode === "analyze") {
       originalContentToRestore = analyzeModeState.originalContentForComparison;
-      setAnalyzeModeState(initialModeResults);
+      setAnalyzeModeState(prev => ({
+        ...prev,
+        originalContentForComparison: null,
+        generatedTitle: null,
+        generatedDescription: null,
+      }));
     } else if (mode === "review_and_improve") {
       originalContentToRestore = reviewModeState.originalContentForComparison;
       setReviewModeState(initialModeResults);
@@ -293,7 +301,12 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
       onAcceptChanges(newContent, newTitle); // Pass newTitle
       // Clear the state for the current mode after accepting
       if (mode === "analyze") {
-        setAnalyzeModeState(initialModeResults);
+        setAnalyzeModeState(prev => ({
+          ...prev,
+          originalContentForComparison: null,
+          generatedTitle: null,
+          generatedDescription: null,
+        }));
       } else if (mode === "review_and_improve") {
         setReviewModeState(initialModeResults);
       } else if (mode === "create_from_scratch") {
@@ -306,6 +319,8 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
 
   const showComparisonSection = currentOriginalContentForComparison && currentGeneratedOrImprovedContent;
 
+  // For 'analyze' mode, we always want a two-column comparison if showing.
+  // For 'review_and_improve' and 'create_from_scratch', the original is the input, so only one column for the output.
   const isSingleColumnComparison = mode === "review_and_improve" || mode === "create_from_scratch";
 
   return (
@@ -334,7 +349,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
           <Copy className="mr-2 h-4 w-4" /> Copy
         </Button>
         <div className="flex items-center gap-2">
-          {mode === "analyze" && currentAnalysisResult && currentAnalysisResult.qualityLevel !== "Excellent" && (
+          {mode === "analyze" && currentAnalysisResult && currentAnalysisResult.qualityLevel !== "Excellent" && !showComparisonSection && (
             <Button type="button" onClick={handleApplySuggestions} disabled={isLoading}>
               {isLoading ? "Applying..." : "Apply Suggestions"}
             </Button>
