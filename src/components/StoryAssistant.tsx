@@ -235,16 +235,17 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
       )}
 
       <div className="flex justify-between items-center">
-        <Button variant="outline" onClick={handleCopy} disabled={isLoading || (!currentStoryText.trim() && !mainIdeasInput.trim())}>
+        <Button type="button" variant="outline" onClick={handleCopy} disabled={isLoading || (!currentStoryText.trim() && !mainIdeasInput.trim())}>
           <Copy className="mr-2 h-4 w-4" /> Copy
         </Button>
         <div className="flex items-center gap-2">
           {mode === "analyze" && analysisResult && analysisResult.qualityLevel !== "Excellent" && (
-            <Button onClick={handleApplySuggestions} disabled={isLoading}>
+            <Button type="button" onClick={handleApplySuggestions} disabled={isLoading}>
               {isLoading ? "Applying..." : "Apply Suggestions"}
             </Button>
           )}
           <Button
+            type="button"
             onClick={handleExecuteOperation}
             disabled={
               isLoading ||
@@ -253,7 +254,6 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
           >
             {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
           </Button>
-          {/* Removed the Reset button */}
         </div>
       </div>
 
@@ -275,10 +275,10 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
             </div>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onDeclineChanges} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={onDeclineChanges} disabled={isLoading}>
               <X className="mr-2 h-4 w-4" /> Decline
             </Button>
-            <Button onClick={() => onAcceptChanges(generatedOrImprovedContent || "")} disabled={isLoading}>
+            <Button type="button" onClick={() => onAcceptChanges(generatedOrImprovedContent || "")} disabled={isLoading}>
               <Check className="mr-2 h-4 w-4" /> Accept
             </Button>
           </div>
