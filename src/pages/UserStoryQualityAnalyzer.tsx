@@ -222,12 +222,12 @@ const UserStoryQualityAnalyzer: React.FC = () => {
   };
 
   const handleDeclineChanges = () => {
+    if (operationMode === "create_story_from_scratch" && originalStoryForComparison) {
+      setMainIdeas(originalStoryForComparison); // Restore original main ideas
+    }
     setImprovedStory(null);
     setOriginalStoryForComparison(null);
     setGeneratedStoryOutput(null); // Clear generated output as well
-    if (operationMode === "create_story_from_scratch") {
-      setMainIdeas(""); // Clear main ideas if declined
-    }
     toast.info("Changes declined.");
   };
 
