@@ -62,7 +62,7 @@ const UserStoryForm: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [assistantMode, setAssistantMode] = useState<"analyze" | "review_and_improve" | "create_from_scratch">("analyze");
-  const [mainIdeas, setMainIdeas] = useState<string>("");
+  // Removed mainIdeas state as it's no longer needed.
 
   useEffect(() => {
     if (isEditing) {
@@ -145,22 +145,17 @@ const UserStoryForm: React.FC = () => {
   };
 
   const handleAcceptAssistantChanges = (newContent: string) => {
-    // For 'create_from_scratch' and 'review_and_improve', newContent is the full story text
     form.setValue("description", newContent);
-    // If the new content includes AC, we might need to parse it out or assume it's part of the description.
-    // For now, we'll assume AC is embedded in the description for 'create_from_scratch' and 'review_and_improve'
-    // and the form's acceptance_criteria field will be managed separately or left empty.
-    // If 'analyze' mode was used, the AC would have been updated via handleStoryAssistantUpdate.
-    
-    // Reset assistant's comparison state
-    setMainIdeas(""); // Clear main ideas after accepting a generated story
-    setAssistantMode("analyze"); // Switch back to analyze mode after accepting
+    // If the generated content includes AC, it's now part of the description.
+    // The form's acceptance_criteria field will be managed separately if needed for 'analyze' mode.
     toast.success("Changes accepted and applied to the form!");
   };
 
   const handleDeclineAssistantChanges = () => {
-    // Reset assistant's comparison state
-    setMainIdeas(""); // Clear main ideas if declined
+    // When declining a generated story, clear the description field.
+    if (assistantMode === "create_from_scratch") {
+      form.setValue("description", "");
+    }
     toast.info("Changes declined.");
   };
 
@@ -205,7 +200,11 @@ const UserStoryForm: React.FC = () => {
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe the user story in detail..."
+                      placeholder={
+                        assistantMode === "create_from_scratch"
+                          ? "Describe your main ideas for the user story here (e.g., 'As a user, I want to log in using my email and password. I need to be able to reset my password if I forget it.')."
+                          : "Describe the user story in detail..."
+                      }
                       rows={10}
                       className="bg-card" 
                       {...field}
@@ -304,8 +303,6 @@ const UserStoryForm: React.FC = () => {
               onStoryUpdate={handleStoryAssistantUpdate}
               onStoryPointsUpdate={handleStoryPointsUpdate}
               mode={assistantMode}
-              mainIdeasInput={mainIdeas}
-              onMainIdeasChange={setMainIdeas}
               onAcceptChanges={handleAcceptAssistantChanges}
               onDeclineChanges={handleDeclineAssistantChanges}
             />
