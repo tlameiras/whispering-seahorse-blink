@@ -217,14 +217,18 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
       });
 
       if (data && data.title && data.description) { // Expecting title and description
+        // Directly update the parent form's story and title
+        onStoryUpdate(data.description, currentAcceptanceCriteria, data.title);
+        
+        // Clear the comparison-specific states for analyze mode
         setAnalyzeModeState(prev => ({
           ...prev,
-          originalContentForComparison: currentStoryText,
-          generatedTitle: data.title,
-          generatedDescription: data.description,
-          analysisResult: null, // Clear analysis result to show comparison
+          originalContentForComparison: null,
+          generatedTitle: null,
+          generatedDescription: null,
         }));
-        toast.success("Suggestions applied and new story generated! Review below.");
+
+        toast.success("Suggestions applied and story updated!");
       } else {
         toast.error("Failed to apply suggestions.");
       }
