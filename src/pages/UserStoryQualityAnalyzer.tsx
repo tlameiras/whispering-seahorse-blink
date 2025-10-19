@@ -258,6 +258,9 @@ const UserStoryQualityAnalyzer: React.FC = () => {
   const showComparisonSection = (improvedStory && originalStoryForComparison) && 
                                (operationMode === "review_and_improve" || operationMode === "create_story_from_scratch");
 
+  // Conditional rendering for the "Execute Operation" button
+  const shouldShowExecuteOperationButton = !(isLoading && operationMode === "analyze" && analysisResult);
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <h1 className="text-4xl font-bold mb-4 text-center">User Story Quality Analyzer</h1>
@@ -337,9 +340,11 @@ const UserStoryQualityAnalyzer: React.FC = () => {
                 {isLoading ? "Applying..." : "Apply Suggestions"}
               </Button>
             )}
-            <Button onClick={handleExecuteOperation} disabled={isLoading || (operationMode === "create_story_from_scratch" ? !mainIdeas.trim() : !userStory.trim())}>
-              {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
-            </Button>
+            {shouldShowExecuteOperationButton && (
+              <Button onClick={handleExecuteOperation} disabled={isLoading || (operationMode === "create_story_from_scratch" ? !mainIdeas.trim() : !userStory.trim())}>
+                {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
+              </Button>
+            )}
             <Button variant="secondary" onClick={handleReset} disabled={isLoading}>
               <RefreshCcw className="mr-2 h-4 w-4" /> Reset
             </Button>
