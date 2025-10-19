@@ -263,6 +263,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
       originalContentToRestore = analyzeModeState.originalContentForComparison;
       setAnalyzeModeState(prev => ({
         ...prev,
+        analysisResult: null, // Clear analysis results
         originalContentForComparison: null,
         generatedTitle: null,
         generatedDescription: null,
@@ -298,6 +299,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
       if (mode === "analyze") {
         setAnalyzeModeState(prev => ({
           ...prev,
+          analysisResult: null, // Clear analysis results
           originalContentForComparison: null,
           generatedTitle: null,
           generatedDescription: null,
