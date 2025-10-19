@@ -42,13 +42,17 @@ interface GeneratedStoryOutput {
 interface ModeSpecificResults {
   analysisResult: AnalysisResult | null;
   originalContentForComparison: string | null;
-  generatedOrImprovedContent: string | null;
+  generatedTitle: string | null; // For create_from_scratch and apply_suggestions
+  generatedDescription: string | null; // For create_from_scratch and apply_suggestions
+  improvedStoryText: string | null; // For review_and_improve (plain text)
 }
 
 const initialModeResults: ModeSpecificResults = {
   analysisResult: null,
   originalContentForComparison: null,
-  generatedOrImprovedContent: null,
+  generatedTitle: null,
+  generatedDescription: null,
+  improvedStoryText: null,
 };
 
 interface StoryAssistantProps {
@@ -88,15 +92,20 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
     if (mode === "analyze") {
       setCurrentAnalysisResult(analyzeModeState.analysisResult);
       setCurrentOriginalContentForComparison(analyzeModeState.originalContentForComparison);
-      setCurrentGeneratedOrImprovedContent(analyzeModeState.generatedOrImprovedContent);
+      setCurrentGeneratedOrImprovedContent(null); // Analyze mode doesn't have a generated/improved story in this section
     } else if (mode === "review_and_improve") {
       setCurrentAnalysisResult(reviewModeState.analysisResult); // Will be null for this mode
       setCurrentOriginalContentForComparison(reviewModeState.originalContentForComparison);
-      setCurrentGeneratedOrImprovedContent(reviewModeState.generatedOrImprovedContent);
+      setCurrentGeneratedOrImprovedContent(reviewModeState.improvedStoryText); // Plain text
     } else if (mode === "create_from_scratch") {
       setCurrentAnalysisResult(createModeState.analysisResult); // Will be null for this mode
       setCurrentOriginalContentForComparison(createModeState.originalContentForComparison);
-      setCurrentGeneratedOrImprovedContent(createModeState.generatedOrImprovedContent);
+      // Format for display from stored title/description
+      setCurrentGeneratedOrImprovedContent(
+        createModeState.generatedTitle && createModeState.generatedDescription
+          ? `## ${createModeState.generatedTitle}\n\n${createModeState.generatedDescription}`
+          : null
+      );
     }
   }, [mode, analyzeModeState, reviewModeState, createModeState]);
 
@@ -149,7 +158,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
           operationMode: "review_and_improve",
         });
         if (data && data.newStory) {
-          setReviewModeState(prev => ({ ...prev, originalContentForComparison: storyInput, generatedOrImprovedContent: data.newStory }));
+          setReviewModeState(prev => ({ ...prev, originalContentForComparison: storyInput, improvedStoryText: data.newStory }));
           toast.success("User story reviewed and improved!");
         } else {
           toast.error("Failed to review and improve story.");
@@ -162,7 +171,12 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
         });
         if (data) {
           const generated = data as GeneratedStoryOutput;
-          setCreateModeState(prev => ({ ...prev, originalContentForComparison: storyInput, generatedOrImprovedContent: `## ${generated.title}\n\n${generated.description}` }));
+          setCreateModeState(prev => ({
+            ...prev,
+            originalContentForComparison: storyInput,
+            generatedTitle: generated.title,
+            generatedDescription: generated.description,
+          }));
           toast.success("User story generated from ideas!");
         } else {
           toast.error("Failed to generate story from ideas.");
@@ -236,26 +250,39 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   const handleDecline = () => {
     let originalContentToRestore: string | null = null;
     if (mode === "analyze") {
-      setAnalyzeModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+      setAnalyzeModeState(initialModeResults);
     } else if (mode === "review_and_improve") {
       originalContentToRestore = reviewModeState.originalContentForComparison;
-      setReviewModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+      setReviewModeState(initialModeResults);
     } else if (mode === "create_from_scratch") {
       originalContentToRestore = createModeState.originalContentForComparison;
-      setCreateModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+      setCreateModeState(initialModeResults);
     }
     onDeclineChanges(originalContentToRestore); // Pass the original content back
   };
 
-  const handleAccept = (newContent: string, newTitle?: string) => { // Accept newTitle
-    if (mode === "analyze") {
-      setAnalyzeModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
-    } else if (mode === "review_and_improve") {
-      setReviewModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
-    } else if (mode === "create_from_scratch") {
-      setCreateModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+  const handleAccept = () => {
+    let newContent = "";
+    let newTitle: string | undefined = undefined;
+
+    if (mode === "review_and_improve" && reviewModeState.improvedStoryText) {
+      newContent = reviewModeState.improvedStoryText;
+    } else if (mode === "create_from_scratch" && createModeState.generatedDescription) {
+      newContent = createModeState.generatedDescription;
+      newTitle = createModeState.generatedTitle || undefined;
     }
-    onAcceptChanges(newContent, newTitle); // Pass newTitle
+
+    if (newContent) {
+      onAcceptChanges(newContent, newTitle); // Pass newTitle
+      // Clear the state for the current mode after accepting
+      if (mode === "review_and_improve") {
+        setReviewModeState(initialModeResults);
+      } else if (mode === "create_from_scratch") {
+        setCreateModeState(initialModeResults);
+      }
+    } else {
+      toast.error("No content to accept.");
+    }
   };
 
   const showComparisonSection = currentOriginalContentForComparison && currentGeneratedOrImprovedContent;
@@ -326,8 +353,8 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
             <Button type="button" variant="outline" onClick={handleDecline} disabled={isLoading}>
               <X className="mr-2 h-4 w-4" /> Decline
             </Button>
-            <Button type="button" onClick={() => handleAccept(currentGeneratedOrImprovedContent || "", (mode === "create_from_scratch" || mode === "apply_suggestions") ? (JSON.parse(currentGeneratedOrImprovedContent || '{}').title || undefined) : undefined)} disabled={isLoading}>
-              <Check className="mr-2 h-4 w-4" /> Accept
+            <Button type="button" onClick={handleAccept} disabled={isLoading}>
+              <Check className="mr-2 h-4 w-4" /> Accept Changes
             </Button>
           </div>
         </div>
