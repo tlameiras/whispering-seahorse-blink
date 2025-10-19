@@ -57,7 +57,7 @@ interface StoryAssistantProps {
   onStoryPointsUpdate: (points: number) => void;
   mode: "analyze" | "review_and_improve" | "create_from_scratch";
   onAcceptChanges: (newStory: string) => void; // Simplified to just newStory
-  onDeclineChanges: () => void;
+  onDeclineChanges: (originalContent: string | null) => void; // Updated to pass original content
 }
 
 const StoryAssistant: React.FC<StoryAssistantProps> = ({
@@ -228,14 +228,17 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   };
 
   const handleDecline = () => {
+    let originalContentToRestore: string | null = null;
     if (mode === "analyze") {
       setAnalyzeModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
     } else if (mode === "review_and_improve") {
+      originalContentToRestore = reviewModeState.originalContentForComparison;
       setReviewModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
     } else if (mode === "create_from_scratch") {
+      originalContentToRestore = createModeState.originalContentForComparison;
       setCreateModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
     }
-    onDeclineChanges(); // Call the parent's handler
+    onDeclineChanges(originalContentToRestore); // Pass the original content back
   };
 
   const handleAccept = (newContent: string) => {

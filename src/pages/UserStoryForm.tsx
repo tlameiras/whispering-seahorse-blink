@@ -151,12 +151,16 @@ const UserStoryForm: React.FC = () => {
     toast.success("Changes accepted and applied to the form!");
   };
 
-  const handleDeclineAssistantChanges = () => {
-    // When declining a generated story, clear the description field.
-    if (assistantMode === "create_from_scratch") {
-      form.setValue("description", "");
+  const handleDeclineAssistantChanges = (originalContent: string | null) => {
+    if (originalContent !== null) {
+      form.setValue("description", originalContent);
+      toast.info("Changes declined. Original content restored.");
+    } else {
+      // If there was no original content (e.g., description was empty initially),
+      // then it's fine to clear it or leave it as is.
+      form.setValue("description", ""); 
+      toast.info("Changes declined.");
     }
-    toast.info("Changes declined.");
   };
 
   if (loading && isEditing) {
