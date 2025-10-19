@@ -13,6 +13,7 @@ interface Suggestion {
   text: string;
   example?: string;
   ticked: boolean;
+  type?: "improvement" | "acceptance"; // Add this type property
 }
 
 interface SimilarStory {
@@ -53,11 +54,11 @@ const initialModeResults: ModeSpecificResults = {
 interface StoryAssistantProps {
   currentStoryText: string;
   currentAcceptanceCriteria: Suggestion[];
-  onStoryUpdate: (newStory: string, newAcceptanceCriteria: Suggestion[]) => void;
+  onStoryUpdate: (newStory: string, newAcceptanceCriteria: Suggestion[], newTitle?: string) => void; // Updated signature
   onStoryPointsUpdate: (points: number) => void;
   mode: "analyze" | "review_and_improve" | "create_from_scratch";
-  onAcceptChanges: (newStory: string) => void; // Simplified to just newStory
-  onDeclineChanges: (originalContent: string | null) => void; // Updated to pass original content
+  onAcceptChanges: (newStory: string, newTitle?: string) => void; // Updated to pass newTitle
+  onDeclineChanges: (originalContent: string | null) => void;
 }
 
 const StoryAssistant: React.FC<StoryAssistantProps> = ({
@@ -177,9 +178,14 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   const handleApplySuggestions = async () => {
     if (!currentAnalysisResult) return;
 
-    const tickedSuggestions = currentAnalysisResult.improvementSuggestions.filter(s => s.ticked);
-    if (tickedSuggestions.length === 0) {
-      toast.info("No suggestions selected to apply.");
+    // Combine improvement suggestions and acceptance criteria, add type, and filter ticked ones
+    const combinedTickedSuggestions = [
+      ...currentAnalysisResult.improvementSuggestions.filter(s => s.ticked).map(s => ({ ...s, type: "improvement" as const })),
+      ...currentAcceptanceCriteria.filter(c => c.ticked).map(c => ({ ...c, type: "acceptance" as const })),
+    ];
+
+    if (combinedTickedSuggestions.length === 0) {
+      toast.info("No suggestions or acceptance criteria selected to apply.");
       return;
     }
 
@@ -189,11 +195,11 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
         userStory: currentStoryText,
         llmModel,
         operationMode: "apply_suggestions",
-        suggestions: tickedSuggestions,
+        suggestions: combinedTickedSuggestions, // Send the combined array
       });
 
-      if (data && data.newStory) {
-        onStoryUpdate(data.newStory, currentAnalysisResult.suggestedAcceptanceCriteria);
+      if (data && data.title && data.description) { // Expecting title and description
+        onStoryUpdate(data.description, [], data.title); // Update description, clear AC, and update title
         setAnalyzeModeState(prev => ({ ...prev, analysisResult: null })); // Reset analysis to allow re-analysis of the new story
         toast.success("Suggestions applied and new story generated!");
       } else {
@@ -241,7 +247,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
     onDeclineChanges(originalContentToRestore); // Pass the original content back
   };
 
-  const handleAccept = (newContent: string) => {
+  const handleAccept = (newContent: string, newTitle?: string) => { // Accept newTitle
     if (mode === "analyze") {
       setAnalyzeModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
     } else if (mode === "review_and_improve") {
@@ -249,7 +255,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
     } else if (mode === "create_from_scratch") {
       setCreateModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
     }
-    onAcceptChanges(newContent);
+    onAcceptChanges(newContent, newTitle); // Pass newTitle
   };
 
   const showComparisonSection = currentOriginalContentForComparison && currentGeneratedOrImprovedContent;
@@ -320,7 +326,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
             <Button type="button" variant="outline" onClick={handleDecline} disabled={isLoading}>
               <X className="mr-2 h-4 w-4" /> Decline
             </Button>
-            <Button type="button" onClick={() => handleAccept(currentGeneratedOrImprovedContent || "")} disabled={isLoading}>
+            <Button type="button" onClick={() => handleAccept(currentGeneratedOrImprovedContent || "", (mode === "create_from_scratch" || mode === "apply_suggestions") ? (JSON.parse(currentGeneratedOrImprovedContent || '{}').title || undefined) : undefined)} disabled={isLoading}>
               <Check className="mr-2 h-4 w-4" /> Accept
             </Button>
           </div>

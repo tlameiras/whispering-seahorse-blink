@@ -20,6 +20,7 @@ interface Suggestion {
   text: string;
   example?: string;
   ticked: boolean;
+  type?: "improvement" | "acceptance"; // Added type property
 }
 
 const formSchema = z.object({
@@ -37,6 +38,7 @@ const formSchema = z.object({
     text: z.string(),
     example: z.string().optional(),
     ticked: z.boolean(),
+    type: z.enum(["improvement", "acceptance"]).optional(), // Added type to schema
   })).optional(),
 });
 
@@ -135,19 +137,23 @@ const UserStoryForm: React.FC = () => {
     setLoading(false);
   };
 
-  const handleStoryAssistantUpdate = (newStory: string, newAcceptanceCriteria: Suggestion[]) => {
+  const handleStoryAssistantUpdate = (newStory: string, newAcceptanceCriteria: Suggestion[], newTitle?: string) => {
     form.setValue("description", newStory);
     form.setValue("acceptance_criteria", newAcceptanceCriteria);
+    if (newTitle) {
+      form.setValue("title", newTitle); // Update title if provided
+    }
   };
 
   const handleStoryPointsUpdate = (points: number) => {
     form.setValue("story_points", points);
   };
 
-  const handleAcceptAssistantChanges = (newContent: string) => {
+  const handleAcceptAssistantChanges = (newContent: string, newTitle?: string) => {
     form.setValue("description", newContent);
-    // If the generated content includes AC, it's now part of the description.
-    // The form's acceptance_criteria field will be managed separately if needed for 'analyze' mode.
+    if (newTitle) {
+      form.setValue("title", newTitle); // Update title if provided
+    }
     toast.success("Changes accepted and applied to the form!");
   };
 

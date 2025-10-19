@@ -14,8 +14,14 @@ serve(async (req) => {
   try {
     const { userStory, llmModel, operationMode, suggestions } = await req.json();
 
-    if (!userStory) {
+    if (!userStory && operationMode !== "create_story_from_scratch") {
       return new Response(JSON.stringify({ error: 'User story is required.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+    if (!userStory && operationMode === "create_story_from_scratch") {
+      return new Response(JSON.stringify({ error: 'Main ideas are required to create a story from scratch.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
@@ -58,10 +64,23 @@ serve(async (req) => {
       Ensure all 'id' fields are unique strings. For 'ticked', default to true for suggestions/criteria that are generally good practices or directly applicable, and false for more advanced or optional ones. For 'similarHistoricalStories', generate 3 plausible mock stories with varying matching percentages.`;
       responseFormat = "application/json";
     } else if (operationMode === "apply_suggestions") {
-        promptContent = `Given the original user story and a list of suggestions, rewrite the user story to incorporate the suggestions. Return only the new user story text as a string.
+        const improvementSuggestions = suggestions.filter((s: any) => s.type === 'improvement').map((s: any) => s.text);
+        const acceptanceCriteria = suggestions.filter((s: any) => s.type === 'acceptance').map((s: any) => s.text);
+
+        promptContent = `Given the original user story, a list of improvement suggestions, and a list of acceptance criteria, rewrite the user story to incorporate all ticked items.
+        The output should be a JSON object with a 'title' and a 'description'. The 'description' should be comprehensive, including the user story itself, a 'Details:' section for context, a 'Scope:' section for actionable items, and an 'Acceptance Criteria:' section with bullet points for what will be checked to accept the story when completed.
+        Crucially, ONLY include acceptance criteria points that are explicitly provided in the 'Acceptance Criteria to include' list. Do NOT generate new acceptance criteria.
+
         Original User Story: "${userStory}"
-        Suggestions: ${JSON.stringify(suggestions || [])}`;
-        responseFormat = "text/plain";
+        Improvement Suggestions to apply: ${JSON.stringify(improvementSuggestions)}
+        Acceptance Criteria to include: ${JSON.stringify(acceptanceCriteria)}
+
+        Return the output as a JSON object with the following structure:
+        {
+          "title": "string",
+          "description": "string" // This string should include the user story, 'Details:', 'Scope:', and 'Acceptance Criteria:' sections.
+        }`;
+        responseFormat = "application/json"; // Changed to JSON output
     } else if (operationMode === "review_and_improve") {
         promptContent = `Review the following user story for grammatical errors, clarity, and minor wording improvements. Do not make significant changes to the meaning or scope. Return only the improved user story text as a string.
         User Story: "${userStory}"`;
@@ -159,14 +178,14 @@ serve(async (req) => {
       llmOutput = data.candidates[0].content.parts[0].text;
     }
 
-    if (operationMode === "apply_suggestions" || operationMode === "review_and_improve") {
+    if (operationMode === "review_and_improve") { // Only this mode returns plain text now
         return new Response(JSON.stringify({ newStory: llmOutput }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         });
     }
 
-    // For 'analyze' and 'create_story_from_scratch', parse JSON
+    // For 'analyze', 'create_story_from_scratch', and 'apply_suggestions', parse JSON
     const parsedOutput = JSON.parse(llmOutput);
 
     return new Response(JSON.stringify(parsedOutput), {
