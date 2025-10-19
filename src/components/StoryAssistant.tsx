@@ -47,7 +47,7 @@ interface StoryAssistantProps {
   mainIdeasInput: string;
   onMainIdeasChange: (ideas: string) => void;
   onAcceptChanges: (newStory: string, newAcceptanceCriteria?: Suggestion[]) => void;
-  onDeclineChanges: () => void;
+  onDeclineChanges: () => void; // Renamed to parentOnDeclineChanges internally
 }
 
 const StoryAssistant: React.FC<StoryAssistantProps> = ({
@@ -59,7 +59,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   mainIdeasInput,
   onMainIdeasChange,
   onAcceptChanges,
-  onDeclineChanges,
+  onDeclineChanges: parentOnDeclineChanges, // Renamed prop to avoid conflict with local handler
 }) => {
   const [llmModel, setLlmModel] = useState<string>("gemini-2.5-flash");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -201,6 +201,12 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
     }
   };
 
+  const handleDecline = () => {
+    setOriginalContentForComparison(null);
+    setGeneratedOrImprovedContent(null);
+    parentOnDeclineChanges(); // Call the parent's handler
+  };
+
   const showComparisonSection = originalContentForComparison && generatedOrImprovedContent;
 
   return (
@@ -277,7 +283,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
             </div>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={onDeclineChanges} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={handleDecline} disabled={isLoading}>
               <X className="mr-2 h-4 w-4" /> Decline
             </Button>
             <Button type="button" onClick={() => onAcceptChanges(generatedOrImprovedContent || "")} disabled={isLoading}>
