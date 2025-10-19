@@ -181,7 +181,7 @@ const UserStoryManager: React.FC = () => {
       ) : stories.length === 0 ? (
         <p className="text-center text-lg">No user stories found. Create one to get started!</p>
       ) : (
-        <div className="overflow-x-auto border rounded-lg">
+        <div className="overflow-x-auto border rounded-lg bg-card"> {/* Added bg-card here */}
           <Table>
             <TableHeader>
               <TableRow>
