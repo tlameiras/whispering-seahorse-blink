@@ -67,8 +67,12 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   const [originalContentForComparison, setOriginalContentForComparison] = useState<string | null>(null);
   const [generatedOrImprovedContent, setGeneratedOrImprovedContent] = useState<string | null>(null);
 
-  // Removed the useEffect that was prematurely resetting state on input/mode changes.
-  // State will now only be reset when handleExecuteOperation is called.
+  // Clear results when the operation mode changes
+  useEffect(() => {
+    setAnalysisResult(null);
+    setOriginalContentForComparison(null);
+    setGeneratedOrImprovedContent(null);
+  }, [mode]);
 
   const handleCopy = () => {
     const textToCopy = generatedOrImprovedContent || currentStoryText;
