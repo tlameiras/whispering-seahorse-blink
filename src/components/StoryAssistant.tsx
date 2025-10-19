@@ -92,7 +92,11 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
     if (mode === "analyze") {
       setCurrentAnalysisResult(analyzeModeState.analysisResult);
       setCurrentOriginalContentForComparison(analyzeModeState.originalContentForComparison);
-      setCurrentGeneratedOrImprovedContent(null); // Analyze mode doesn't have a generated/improved story in this section
+      setCurrentGeneratedOrImprovedContent(
+        analyzeModeState.generatedTitle && analyzeModeState.generatedDescription
+          ? `## ${analyzeModeState.generatedTitle}\n\n${analyzeModeState.generatedDescription}`
+          : null
+      );
     } else if (mode === "review_and_improve") {
       setCurrentAnalysisResult(reviewModeState.analysisResult); // Will be null for this mode
       setCurrentOriginalContentForComparison(reviewModeState.originalContentForComparison);
@@ -213,9 +217,14 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
       });
 
       if (data && data.title && data.description) { // Expecting title and description
-        onStoryUpdate(data.description, [], data.title); // Update description, clear AC, and update title
-        setAnalyzeModeState(prev => ({ ...prev, analysisResult: null })); // Reset analysis to allow re-analysis of the new story
-        toast.success("Suggestions applied and new story generated!");
+        setAnalyzeModeState(prev => ({
+          ...prev,
+          originalContentForComparison: currentStoryText,
+          generatedTitle: data.title,
+          generatedDescription: data.description,
+          analysisResult: null, // Clear analysis result to show comparison
+        }));
+        toast.success("Suggestions applied and new story generated! Review below.");
       } else {
         toast.error("Failed to apply suggestions.");
       }
@@ -250,6 +259,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   const handleDecline = () => {
     let originalContentToRestore: string | null = null;
     if (mode === "analyze") {
+      originalContentToRestore = analyzeModeState.originalContentForComparison;
       setAnalyzeModeState(initialModeResults);
     } else if (mode === "review_and_improve") {
       originalContentToRestore = reviewModeState.originalContentForComparison;
@@ -270,12 +280,17 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
     } else if (mode === "create_from_scratch" && createModeState.generatedDescription) {
       newContent = createModeState.generatedDescription;
       newTitle = createModeState.generatedTitle || undefined;
+    } else if (mode === "analyze" && analyzeModeState.generatedDescription) { // For apply_suggestions flow
+      newContent = analyzeModeState.generatedDescription;
+      newTitle = analyzeModeState.generatedTitle || undefined;
     }
 
     if (newContent) {
       onAcceptChanges(newContent, newTitle); // Pass newTitle
       // Clear the state for the current mode after accepting
-      if (mode === "review_and_improve") {
+      if (mode === "analyze") {
+        setAnalyzeModeState(initialModeResults);
+      } else if (mode === "review_and_improve") {
         setReviewModeState(initialModeResults);
       } else if (mode === "create_from_scratch") {
         setCreateModeState(initialModeResults);
@@ -344,7 +359,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
             )}
             <div>
               <p className="font-medium mb-2">
-                {mode === "create_from_scratch" ? "Generated Story" : "Improved Story"}
+                {mode === "create_from_scratch" || (mode === "analyze" && analyzeModeState.generatedDescription) ? "Generated Story" : "Improved Story"}
               </p>
               <Textarea value={currentGeneratedOrImprovedContent || ""} rows={10} readOnly className="bg-muted resize-none" />
             </div>
