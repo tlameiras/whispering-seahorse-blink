@@ -207,7 +207,7 @@ const UserStoryForm: React.FC = () => {
                     <Textarea
                       placeholder="Describe the user story in detail..."
                       rows={10}
-                      className="bg-card" {/* Changed to bg-card */}
+                      className="bg-card" 
                       {...field}
                     />
                   </FormControl>

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Check, X, Copy, RefreshCcw } from "lucide-react";
+import { Sparkles, Check, X, Copy } from "lucide-react"; // Removed RefreshCcw icon
 import { toast } from "sonner";
 import { invokeAIAnalysis } from "@/utils/ai";
 
@@ -253,15 +253,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
           >
             {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
           </Button>
-          <Button variant="outline" onClick={() => { {/* Changed variant to "outline" */}
-            setAnalysisResult(null);
-            setOriginalContentForComparison(null);
-            setGeneratedOrImprovedContent(null);
-            if (mode === "create_from_scratch") onMainIdeasChange("");
-            toast.info("Assistant state reset.");
-          }} disabled={isLoading}>
-            <RefreshCcw className="mr-2 h-4 w-4" /> Reset
-          </Button>
+          {/* Removed the Reset button */}
         </div>
       </div>
 
