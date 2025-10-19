@@ -38,6 +38,18 @@ interface GeneratedStoryOutput {
   description: string;
 }
 
+interface ModeSpecificResults {
+  analysisResult: AnalysisResult | null;
+  originalContentForComparison: string | null;
+  generatedOrImprovedContent: string | null;
+}
+
+const initialModeResults: ModeSpecificResults = {
+  analysisResult: null,
+  originalContentForComparison: null,
+  generatedOrImprovedContent: null,
+};
+
 interface StoryAssistantProps {
   currentStoryText: string;
   currentAcceptanceCriteria: Suggestion[];
@@ -62,20 +74,37 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   onDeclineChanges,
 }) => {
   const [llmModel, setLlmModel] = useState<string>("gemini-2.5-flash");
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [originalContentForComparison, setOriginalContentForComparison] = useState<string | null>(null);
-  const [generatedOrImprovedContent, setGeneratedOrImprovedContent] = useState<string | null>(null);
 
-  // Clear results when the operation mode changes
+  // State to store results for each mode
+  const [analyzeModeState, setAnalyzeModeState] = useState<ModeSpecificResults>(initialModeResults);
+  const [reviewModeState, setReviewModeState] = useState<ModeSpecificResults>(initialModeResults);
+  const [createModeState, setCreateModeState] = useState<ModeSpecificResults>(initialModeResults);
+
+  // State for currently displayed results
+  const [currentAnalysisResult, setCurrentAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [currentOriginalContentForComparison, setCurrentOriginalContentForComparison] = useState<string | null>(null);
+  const [currentGeneratedOrImprovedContent, setCurrentGeneratedOrImprovedContent] = useState<string | null>(null);
+
+  // Effect to update displayed results when mode changes
   useEffect(() => {
-    setAnalysisResult(null);
-    setOriginalContentForComparison(null);
-    setGeneratedOrImprovedContent(null);
-  }, [mode]);
+    if (mode === "analyze") {
+      setCurrentAnalysisResult(analyzeModeState.analysisResult);
+      setCurrentOriginalContentForComparison(analyzeModeState.originalContentForComparison);
+      setCurrentGeneratedOrImprovedContent(analyzeModeState.generatedOrImprovedContent);
+    } else if (mode === "review_and_improve") {
+      setCurrentAnalysisResult(reviewModeState.analysisResult); // Will be null for this mode
+      setCurrentOriginalContentForComparison(reviewModeState.originalContentForComparison);
+      setCurrentGeneratedOrImprovedContent(reviewModeState.generatedOrImprovedContent);
+    } else if (mode === "create_from_scratch") {
+      setCurrentAnalysisResult(createModeState.analysisResult); // Will be null for this mode
+      setCurrentOriginalContentForComparison(createModeState.originalContentForComparison);
+      setCurrentGeneratedOrImprovedContent(createModeState.generatedOrImprovedContent);
+    }
+  }, [mode, analyzeModeState, reviewModeState, createModeState]);
 
   const handleCopy = () => {
-    const textToCopy = generatedOrImprovedContent || currentStoryText;
+    const textToCopy = currentGeneratedOrImprovedContent || currentStoryText;
     if (textToCopy) {
       navigator.clipboard.writeText(textToCopy);
       toast.success("Content copied to clipboard!");
@@ -85,10 +114,14 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   };
 
   const handleExecuteOperation = async () => {
-    // Clear all previous results before executing a new operation
-    setAnalysisResult(null);
-    setOriginalContentForComparison(null);
-    setGeneratedOrImprovedContent(null);
+    // Clear current mode's results before executing a new operation
+    if (mode === "analyze") {
+      setAnalyzeModeState(initialModeResults);
+    } else if (mode === "review_and_improve") {
+      setReviewModeState(initialModeResults);
+    } else if (mode === "create_from_scratch") {
+      setCreateModeState(initialModeResults);
+    }
 
     let storyInput = "";
     if (mode === "create_from_scratch") {
@@ -113,25 +146,23 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
           llmModel,
           operationMode: "analyze",
         });
-        setAnalysisResult(data as AnalysisResult);
+        setAnalyzeModeState(prev => ({ ...prev, analysisResult: data as AnalysisResult }));
         onStoryPointsUpdate((data as AnalysisResult).recommendedStoryPoints);
         onStoryUpdate(currentStoryText, (data as AnalysisResult).suggestedAcceptanceCriteria);
         toast.success("User story analysis complete!");
       } else if (mode === "review_and_improve") {
-        setOriginalContentForComparison(storyInput);
         const data = await invokeAIAnalysis({
           userStory: storyInput,
           llmModel,
           operationMode: "review_and_improve",
         });
         if (data && data.newStory) {
-          setGeneratedOrImprovedContent(data.newStory);
+          setReviewModeState(prev => ({ ...prev, originalContentForComparison: storyInput, generatedOrImprovedContent: data.newStory }));
           toast.success("User story reviewed and improved!");
         } else {
           toast.error("Failed to review and improve story.");
         }
       } else if (mode === "create_from_scratch") {
-        setOriginalContentForComparison(storyInput); // Main ideas for comparison
         const data = await invokeAIAnalysis({
           userStory: storyInput,
           llmModel,
@@ -139,7 +170,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
         });
         if (data) {
           const generated = data as GeneratedStoryOutput;
-          setGeneratedOrImprovedContent(`## ${generated.title}\n\n${generated.description}`);
+          setCreateModeState(prev => ({ ...prev, originalContentForComparison: storyInput, generatedOrImprovedContent: `## ${generated.title}\n\n${generated.description}` }));
           toast.success("User story generated from ideas!");
         } else {
           toast.error("Failed to generate story from ideas.");
@@ -153,9 +184,9 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   };
 
   const handleApplySuggestions = async () => {
-    if (!analysisResult) return;
+    if (!currentAnalysisResult) return;
 
-    const tickedSuggestions = analysisResult.improvementSuggestions.filter(s => s.ticked);
+    const tickedSuggestions = currentAnalysisResult.improvementSuggestions.filter(s => s.ticked);
     if (tickedSuggestions.length === 0) {
       toast.info("No suggestions selected to apply.");
       return;
@@ -171,8 +202,8 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
       });
 
       if (data && data.newStory) {
-        onStoryUpdate(data.newStory, analysisResult.suggestedAcceptanceCriteria);
-        setAnalysisResult(null); // Reset analysis to allow re-analysis of the new story
+        onStoryUpdate(data.newStory, currentAnalysisResult.suggestedAcceptanceCriteria);
+        setAnalyzeModeState(prev => ({ ...prev, analysisResult: null })); // Reset analysis to allow re-analysis of the new story
         toast.success("Suggestions applied and new story generated!");
       } else {
         toast.error("Failed to apply suggestions.");
@@ -185,14 +216,17 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   };
 
   const handleSuggestionToggle = (type: "improvement" | "acceptance", id: string) => {
-    if (analysisResult) {
+    if (currentAnalysisResult) {
       if (type === "improvement") {
-        setAnalysisResult({
-          ...analysisResult,
-          improvementSuggestions: analysisResult.improvementSuggestions.map(s =>
-            s.id === id ? { ...s, ticked: !s.ticked } : s
-          ),
-        });
+        setAnalyzeModeState(prev => ({
+          ...prev,
+          analysisResult: prev.analysisResult ? {
+            ...prev.analysisResult,
+            improvementSuggestions: prev.analysisResult.improvementSuggestions.map(s =>
+              s.id === id ? { ...s, ticked: !s.ticked } : s
+            ),
+          } : null,
+        }));
       } else {
         const updatedCriteria = currentAcceptanceCriteria.map(c =>
           c.id === id ? { ...c, ticked: !c.ticked } : c
@@ -203,12 +237,28 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
   };
 
   const handleDecline = () => {
-    setOriginalContentForComparison(null);
-    setGeneratedOrImprovedContent(null);
+    if (mode === "analyze") {
+      setAnalyzeModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+    } else if (mode === "review_and_improve") {
+      setReviewModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+    } else if (mode === "create_from_scratch") {
+      setCreateModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+    }
     onDeclineChanges(); // Call the parent's handler
   };
 
-  const showComparisonSection = originalContentForComparison && generatedOrImprovedContent;
+  const handleAccept = (newContent: string) => {
+    if (mode === "analyze") {
+      setAnalyzeModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+    } else if (mode === "review_and_improve") {
+      setReviewModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+    } else if (mode === "create_from_scratch") {
+      setCreateModeState(prev => ({ ...prev, originalContentForComparison: null, generatedOrImprovedContent: null }));
+    }
+    onAcceptChanges(newContent);
+  };
+
+  const showComparisonSection = currentOriginalContentForComparison && currentGeneratedOrImprovedContent;
 
   return (
     <div className="space-y-6">
@@ -246,7 +296,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
           <Copy className="mr-2 h-4 w-4" /> Copy
         </Button>
         <div className="flex items-center gap-2">
-          {mode === "analyze" && analysisResult && analysisResult.qualityLevel !== "Excellent" && (
+          {mode === "analyze" && currentAnalysisResult && currentAnalysisResult.qualityLevel !== "Excellent" && (
             <Button type="button" onClick={handleApplySuggestions} disabled={isLoading}>
               {isLoading ? "Applying..." : "Apply Suggestions"}
             </Button>
@@ -273,49 +323,49 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
                 <p className="font-medium mb-2">
                   {mode === "create_from_scratch" ? "Your Main Ideas" : "Original Story"}
                 </p>
-                <Textarea value={originalContentForComparison || ""} rows={10} readOnly className="bg-muted resize-none" />
+                <Textarea value={currentOriginalContentForComparison || ""} rows={10} readOnly className="bg-muted resize-none" />
               </div>
             )}
             <div>
               <p className="font-medium mb-2">
                 {mode === "create_from_scratch" ? "Generated Story" : "Improved Story"}
               </p>
-              <Textarea value={generatedOrImprovedContent || ""} rows={10} readOnly className="bg-muted resize-none" />
+              <Textarea value={currentGeneratedOrImprovedContent || ""} rows={10} readOnly className="bg-muted resize-none" />
             </div>
           </div>
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={handleDecline} disabled={isLoading}>
               <X className="mr-2 h-4 w-4" /> Decline
             </Button>
-            <Button type="button" onClick={() => onAcceptChanges(generatedOrImprovedContent || "")} disabled={isLoading}>
+            <Button type="button" onClick={() => handleAccept(currentGeneratedOrImprovedContent || "")} disabled={isLoading}>
               <Check className="mr-2 h-4 w-4" /> Accept
             </Button>
           </div>
         </div>
       )}
 
-      {analysisResult && mode === "analyze" && (
+      {currentAnalysisResult && mode === "analyze" && (
         <div className="p-4 border rounded-lg bg-card shadow-sm space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-3 border rounded-md bg-muted">
               <p className="text-sm text-muted-foreground">Quality Score</p>
-              <p className="text-xl font-bold">{analysisResult.qualityScore}/100</p>
+              <p className="text-xl font-bold">{currentAnalysisResult.qualityScore}/100</p>
             </div>
             <div className="p-3 border rounded-md bg-muted">
               <p className="text-sm text-muted-foreground">Quality Level</p>
-              <p className="text-xl font-bold">{analysisResult.qualityLevel}</p>
+              <p className="text-xl font-bold">{currentAnalysisResult.qualityLevel}</p>
             </div>
             <div className="p-3 border rounded-md bg-muted">
               <p className="text-sm text-muted-foreground">Story Points</p>
-              <p className="text-xl font-bold">{analysisResult.recommendedStoryPoints}</p>
+              <p className="text-xl font-bold">{currentAnalysisResult.recommendedStoryPoints}</p>
             </div>
           </div>
 
-          {analysisResult.qualityLevel !== "Excellent" && (
+          {currentAnalysisResult.qualityLevel !== "Excellent" && (
             <>
               <h4 className="text-lg font-semibold mt-4">Improvement Suggestions</h4>
               <div className="space-y-3">
-                {analysisResult.improvementSuggestions.map((suggestion) => (
+                {currentAnalysisResult.improvementSuggestions.map((suggestion) => (
                   <div key={suggestion.id} className="flex items-start space-x-2 p-2 border rounded-md bg-secondary">
                     <input
                       type="checkbox"
@@ -350,11 +400,11 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
             ))}
           </div>
 
-          {analysisResult.similarHistoricalStories.length > 0 && (
+          {currentAnalysisResult.similarHistoricalStories.length > 0 && (
             <>
               <h4 className="text-lg font-semibold mt-4">Similar Historical Stories</h4>
               <div className="space-y-2 text-sm text-muted-foreground">
-                {analysisResult.similarHistoricalStories
+                {currentAnalysisResult.similarHistoricalStories
                   .sort((a, b) => b.matchingPercentage - a.matchingPercentage)
                   .map((story) => (
                     <p key={story.id}>
