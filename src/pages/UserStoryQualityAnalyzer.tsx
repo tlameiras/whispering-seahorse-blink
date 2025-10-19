@@ -345,7 +345,7 @@ const UserStoryQualityAnalyzer: React.FC = () => {
                 {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
               </Button>
             )}
-            <Button variant="secondary" onClick={handleReset} disabled={isLoading}>
+            <Button variant="outline" onClick={handleReset} disabled={isLoading}>
               <RefreshCcw className="mr-2 h-4 w-4" /> Reset
             </Button>
           </div>
