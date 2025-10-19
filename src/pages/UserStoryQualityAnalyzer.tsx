@@ -58,20 +58,21 @@ const UserStoryQualityAnalyzer: React.FC = () => {
     const prevMode = prevOperationModeRef.current;
     const currentMode = operationMode;
 
-    // Logic to transfer content when switching modes
     if (prevMode !== currentMode) {
-      if ((prevMode === "analyze" || prevMode === "review_and_improve") && currentMode === "create_story_from_scratch") {
-        // If switching from analyze/review to create, copy userStory to mainIdeas
-        setMainIdeas(userStory);
-      } else if (prevMode === "create_story_from_scratch" && (currentMode === "analyze" || currentMode === "review_and_improve")) {
-        // If switching from create to analyze/review, copy mainIdeas to userStory
-        setUserStory(mainIdeas);
+      if (currentMode === "create_story_from_scratch") {
+        // If switching TO create mode, and mainIdeas is empty, copy userStory
+        if (!mainIdeas.trim()) {
+          setMainIdeas(userStory);
+        }
+      } else if ((currentMode === "analyze" || currentMode === "review_and_improve")) {
+        // If switching TO analyze/review mode, and userStory is empty, copy mainIdeas
+        if (!userStory.trim()) {
+          setUserStory(mainIdeas);
+        }
       }
     }
-
-    // Update the ref for the next render
     prevOperationModeRef.current = currentMode;
-  }, [operationMode, userStory, mainIdeas]); // Dependencies: operationMode, and the values that might be transferred
+  }, [operationMode, userStory, mainIdeas]);
 
 
   const handleCopy = () => {
@@ -210,13 +211,16 @@ const UserStoryQualityAnalyzer: React.FC = () => {
       setOriginalStoryForComparison(null);
       toast.success("Improved story accepted!");
     } else if (operationMode === "create_story_from_scratch" && generatedStoryOutput) {
-      setUserStory(generatedStoryOutput.description); // Set the description as the main story
-      // Optionally, you could also set the title if you had a separate title field for userStory
+      // Update the mainIdeas input field with the generated story's description
+      setMainIdeas(generatedStoryOutput.description); 
+      // Clear the userStory state as it's not the primary input for this mode
+      setUserStory(""); 
+      
+      // Clear comparison states
       setImprovedStory(null);
       setOriginalStoryForComparison(null);
       setGeneratedStoryOutput(null);
-      setMainIdeas(""); // Clear main ideas after accepting
-      setOperationMode("analyze"); // Switch to analyze mode after accepting
+      // Do NOT change operationMode, stay in 'create_story_from_scratch'
       toast.success("Generated story accepted and loaded!");
     }
   };
