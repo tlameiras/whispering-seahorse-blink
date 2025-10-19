@@ -5,7 +5,7 @@ import { Sparkles, ListTodo } from "lucide-react"; // Import ListTodo icon
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div className="flex flex-col items-center justify-center p-4"> {/* Removed min-h-screen */}
       <div className="text-center mb-12">
         <h1 className="text-5xl font-extrabold mb-4 text-gray-900 dark:text-foreground">
           Welcome to Your Internal Tools Hub
