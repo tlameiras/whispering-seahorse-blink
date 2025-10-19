@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Copy, Sparkles, RefreshCcw, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Import Card components
 
 // Mock data interfaces (will be replaced by actual LLM output)
 interface Suggestion {
@@ -420,55 +421,32 @@ const UserStoryQualityAnalyzer: React.FC = () => {
         </div>
       )}
 
-      {/* Similar Historical Stories Section */}
+      {/* Similar Historical Stories Section - Refactored to use Cards */}
       {analysisResult && analysisResult.similarHistoricalStories.length > 0 && operationMode === "analyze" && (
         <div className="p-6 border rounded-lg bg-card shadow-sm">
           <h2 className="text-2xl font-semibold mb-4">Similar Historical Stories</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-muted">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Title
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Story ID
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Feature
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Matching %
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {analysisResult.similarHistoricalStories
-                  .sort((a, b) => b.matchingPercentage - a.matchingPercentage)
-                  .map((story) => (
-                    <tr key={story.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                        {story.title}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                        {story.id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                        {story.status}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                        {story.featureName} ({story.featureId})
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                        <span className="font-semibold">{story.matchingPercentage}%</span>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+          <div className="space-y-4">
+            {analysisResult.similarHistoricalStories
+              .sort((a, b) => b.matchingPercentage - a.matchingPercentage)
+              .map((story) => (
+                <Card key={story.id} className="w-full">
+                  <CardContent className="p-4 flex justify-between items-center">
+                    <div className="flex flex-col">
+                      <CardTitle className="text-lg font-bold">{story.title}</CardTitle>
+                      <CardDescription className="text-sm text-muted-foreground">
+                        {story.id} | {story.status}
+                      </CardDescription>
+                      <CardDescription className="text-sm text-muted-foreground">
+                        {story.featureName} | {story.featureId}
+                      </CardDescription>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-primary">{story.matchingPercentage}%</p>
+                      <p className="text-sm text-muted-foreground">Matching</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </div>
       )}
