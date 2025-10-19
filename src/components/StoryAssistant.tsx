@@ -253,7 +253,7 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
           >
             {isLoading ? "Processing..." : <><Sparkles className="mr-2 h-4 w-4" /> Execute Operation</>}
           </Button>
-          <Button variant="secondary" onClick={() => {
+          <Button variant="outline" onClick={() => { {/* Changed variant to "outline" */}
             setAnalysisResult(null);
             setOriginalContentForComparison(null);
             setGeneratedOrImprovedContent(null);
