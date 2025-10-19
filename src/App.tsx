@@ -10,8 +10,9 @@ import UserStoryForm from "./pages/UserStoryForm";
 import UserStoryDetail from "./pages/UserStoryDetail";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
-import Profile from "./pages/Profile"; // New import for Profile page
+import Profile from "./pages/Profile";
 import { SessionContextProvider } from "./components/SessionContextProvider";
+import Footer from "./components/Footer"; // Import the new Footer component
 
 const queryClient = new QueryClient();
 
@@ -34,7 +35,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/profile" element={<Profile />} /> {/* New Profile route */}
+                <Route path="/profile" element={<Profile />} />
                 <Route path="/user-story-analyzer" element={<UserStoryQualityAnalyzer />} />
                 <Route path="/user-story-manager" element={<UserStoryManager />} />
                 <Route path="/user-story-manager/new" element={<UserStoryForm />} />
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
+            <Footer /> {/* Add the Footer component here */}
           </div>
         </SessionContextProvider>
       </BrowserRouter>
