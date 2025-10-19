@@ -260,13 +260,15 @@ const StoryAssistant: React.FC<StoryAssistantProps> = ({
       {showComparisonSection && (
         <div className="p-4 border rounded-lg bg-card shadow-sm space-y-4">
           <h4 className="text-lg font-semibold">Review Changes</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="font-medium mb-2">
-                {mode === "create_from_scratch" ? "Your Main Ideas" : "Original Story"}
-              </p>
-              <Textarea value={originalContentForComparison || ""} rows={10} readOnly className="bg-muted resize-none" />
-            </div>
+          <div className={`grid gap-4 ${mode === "review_and_improve" ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
+            {mode !== "review_and_improve" && ( // Only show original if not in review_and_improve mode
+              <div>
+                <p className="font-medium mb-2">
+                  {mode === "create_from_scratch" ? "Your Main Ideas" : "Original Story"}
+                </p>
+                <Textarea value={originalContentForComparison || ""} rows={10} readOnly className="bg-muted resize-none" />
+              </div>
+            )}
             <div>
               <p className="font-medium mb-2">
                 {mode === "create_from_scratch" ? "Generated Story" : "Improved Story"}
